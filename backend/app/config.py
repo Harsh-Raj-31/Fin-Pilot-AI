@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     DEBUG: bool
 
     FRONTEND_URL: str
+    MONGODB_URI: str = "mongodb://localhost:27017"
+    DATABASE_NAME: str = "finpilot_ai"
 
     model_config = SettingsConfigDict(
         env_file=".env",

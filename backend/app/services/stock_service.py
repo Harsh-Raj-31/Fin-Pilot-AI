@@ -1,59 +1,38 @@
+from app.repositories.stock_repository import stock_repository
 from app.schemas.stock import StockResponse
+
 
 
 class StockService:
 
     def get_all_stocks(
-        self,
-        exchange: str | None = None,
-        sector: str | None = None,
-    ) -> list[StockResponse]:
+    self,
+    exchange: str | None = None,
+    sector: str | None = None,
+) -> list[StockResponse]:
 
-        stocks = [
+     stocks = stock_repository.get_all_stocks()
 
-            StockResponse(
-                symbol="RELIANCE",
-                company_name="Reliance Industries Ltd.",
-                exchange="NSE",
-                current_price=1520.45,
-                currency="INR",
-                sector="Energy",
-            ),
+     stock_responses = [
+        StockResponse(**stock)
+        for stock in stocks
+     ]
 
-            StockResponse(
-                symbol="TCS",
-                company_name="Tata Consultancy Services",
-                exchange="NSE",
-                current_price=3875.30,
-                currency="INR",
-                sector="Information Technology",
-            ),
-
-            StockResponse(
-                symbol="INFY",
-                company_name="Infosys Limited",
-                exchange="NSE",
-                current_price=1658.90,
-                currency="INR",
-                sector="Information Technology",
-            ),
+     if exchange:
+        stock_responses = [
+            stock
+            for stock in stock_responses
+            if stock.exchange.upper() == exchange.upper()
         ]
 
-        if exchange:
-            stocks = [
-                stock
-                for stock in stocks
-                if stock.exchange.upper() == exchange.upper()
-            ]
+     if sector:
+           stock_responses = [
+            stock
+            for stock in stock_responses
+            if stock.sector.upper() == sector.upper()
+        ]
 
-        if sector:
-            stocks = [
-                stock
-                for stock in stocks
-                if stock.sector.upper() == sector.upper()
-            ]
-
-        return stocks
+     return stock_responses
 
     def get_stock_by_symbol(self, symbol: str) -> StockResponse | None:
         stocks = self.get_all_stocks()
