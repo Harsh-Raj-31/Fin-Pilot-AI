@@ -1,12 +1,14 @@
-from app.config import settings
+# Standard Library
 from contextlib import asynccontextmanager
 
-
+# Third-Party Libraries
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# Local Application Imports
+from app.config import settings
+from app.core.handlers import register_exception_handlers
 from app.routers.api import api_router
-
 
 
 @asynccontextmanager
@@ -22,6 +24,8 @@ app = FastAPI(
     version=settings.API_VERSION,
     lifespan=lifespan,
 )
+
+register_exception_handlers(app)
 
 app.add_middleware(
     CORSMiddleware,
