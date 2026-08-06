@@ -29,6 +29,55 @@ class StockResponse(BaseModel):
         description="Business sector",
     )
 
+
+class StockCreate(BaseModel):
+    symbol: str = Field(
+        ...,
+        min_length=1,
+        max_length=20,
+        description="Unique stock symbol",
+        example="TCS",
+    )
+
+    company_name: str = Field(
+        ...,
+        min_length=2,
+        max_length=100,
+        description="Company name",
+        example="Tata Consultancy Services",
+    )
+
+    exchange: str = Field(
+        ...,
+        min_length=2,
+        max_length=10,
+        description="Stock exchange",
+        example="NSE",
+    )
+
+    current_price: float = Field(
+        ...,
+        gt=0,
+        description="Current stock price",
+        example=3875.30,
+    )
+
+    currency: str = Field(
+        ...,
+        min_length=3,
+        max_length=3,
+        description="Currency",
+        example="INR",
+    )
+
+    sector: str = Field(
+        ...,
+        min_length=2,
+        max_length=100,
+        description="Business sector",
+        example="Information Technology",
+    )         
+
     model_config = {
         "json_schema_extra": {
             "example": {
@@ -41,3 +90,43 @@ class StockResponse(BaseModel):
             }
         }
     }
+
+class StockUpdate(BaseModel):
+    company_name: str = Field(
+        ...,
+        min_length=2,
+        max_length=100,
+        description="Company name",
+        example="Tata Consultancy Services",
+    )
+
+    exchange: str = Field(
+        ...,
+        min_length=2,
+        max_length=10,
+        description="Stock exchange",
+        example="NSE",
+    )
+
+    current_price: float = Field(
+        ...,
+        gt=0,
+        description="Updated stock price",
+        example=3925.80,
+    )
+
+    currency: str = Field(
+        ...,
+        min_length=3,
+        max_length=3,
+        description="Currency",
+        example="INR",
+    )
+
+    sector: str = Field(
+        ...,
+        min_length=2,
+        max_length=100,
+        description="Business sector",
+        example="Information Technology",
+    )    

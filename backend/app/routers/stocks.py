@@ -1,7 +1,11 @@
 from fastapi import APIRouter, Path, Query, status
 
 from app.core.exceptions import StockNotFoundException
-from app.schemas.stock import StockResponse
+from app.schemas.stock import (
+    StockResponse,
+    StockCreate,
+    StockUpdate,
+)
 from app.services.stock_service import stock_service
 
 router = APIRouter()
@@ -61,3 +65,65 @@ def get_stock_by_symbol(
         raise StockNotFoundException(symbol)
 
     return stock
+
+@router.post(
+    "/stocks",
+    tags=["Stocks"],
+    response_model=StockResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new stock",
+    description="Creates a new stock in the database.",
+)
+def create_stock(
+    stock: StockCreate,
+) -> StockResponse:
+    """
+    Creates a new stock.
+    """
+    return stock_service.create_stock(stock)
+
+@router.put(
+    "/stocks/{symbol}",
+    tags=["Stocks"],
+    response_model=StockResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Update a stock",
+    description="Updates an existing stock by its symbol.",
+)
+def update_stock(
+    symbol: str = Path(
+        ...,
+        description="Stock symbol (e.g. TCS)",
+    ),
+    stock: StockUpdate = ...,
+) -> StockResponse:
+    """
+    Updates an existing stock.
+    """
+    return stock_service.update_stock(
+        symbol=symbol,
+        stock=stock,
+    )
+@router.delete(
+    "/stocks/{symbol}",
+    tags=["Stocks"],
+    status_code=status.HTTP_200_OK,
+    summary="Delete a stock",
+    description="Deletes a stock by its symbol.",
+)
+def delete_stock(
+    symbol: str = Path(
+        ...,
+        description="Stock symbol (e.g. TCS)",
+    ),
+) -> dict:
+    """
+    Deletes a stock by its symbol.
+    """
+    stock_service.delete_stock(symbol)
+
+    return {
+        "success": True,
+        "message": f"Stock '{symbol}' deleted successfully.",
+        "data": None,
+    }
