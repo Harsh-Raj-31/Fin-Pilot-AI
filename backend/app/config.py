@@ -1,19 +1,17 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    APP_NAME: str
-    API_VERSION: str
-    DEBUG: bool
+    APP_NAME: str = "FinPilot AI"
+    API_VERSION: str = "v1"
+    FRONTEND_URL: str = "http://localhost:3000"
+    DEBUG: bool = True
 
-    FRONTEND_URL: str
-    MONGODB_URI: str = "mongodb://localhost:27017"
+    MONGODB_URL: str = "mongodb://localhost:27017"
     DATABASE_NAME: str = "finpilot_ai"
 
-    model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-    )
+    class Config:
+        env_file = ".env"
 
 
 settings = Settings()

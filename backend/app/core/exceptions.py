@@ -18,3 +18,11 @@ class StockNotFoundException(FinPilotException):
 
     def __init__(self, symbol: str):
         super().__init__(f"Stock '{symbol}' not found.")
+
+class StockAlreadyExistsException(FinPilotException):
+    """Raised when a stock with the same symbol already exists."""
+
+    status_code = status.HTTP_409_CONFLICT
+
+    def __init__(self, symbol: str):
+        super().__init__(f"Stock '{symbol}' already exists.")        

@@ -5,18 +5,34 @@ from app.schemas.stock import (
 )
 
 from app.repositories.stock_repository import stock_repository
-from app.core.exceptions import StockNotFoundException
 
+from app.core.exceptions import (
+    StockAlreadyExistsException,
+    StockNotFoundException,
+)
+
+from app.core.logger import logger
 
 class StockService:
 
     def get_all_stocks(
     self,
+    page: int = 1,
+    limit: int = 10,
+    search: str  | None =None,
+    sort_by: str = "symbol",
+    order: str = "asc",
     exchange: str | None = None,
     sector: str | None = None,
 ) -> list[StockResponse]:
 
-     stocks = stock_repository.get_all_stocks()
+     stocks = stock_repository.get_all_stocks(
+     page=page,
+     limit=limit,
+     search=search,
+     sort_by=sort_by,
+     order=order,
+)
 
      stock_responses = [
         StockResponse(**stock)
@@ -39,14 +55,20 @@ class StockService:
 
      return stock_responses
 
-    def get_stock_by_symbol(self, symbol: str) -> StockResponse | None:
-        stocks = self.get_all_stocks()
+    def get_stock_by_symbol(
+    self,
+    symbol: str,
+) -> StockResponse:
+  
+      stock = stock_repository.get_stock_by_symbol(symbol)
 
-        for stock in stocks:
-            if stock.symbol.upper() == symbol.upper():
-                return stock
+      if stock is None:
+          logger.warning(f"Stock {symbol} not found")
+          raise StockNotFoundException(symbol)
 
-        return None
+      return StockResponse(**stock)
+
+      
 
     def create_stock(self, stock: StockCreate) -> StockResponse:
         """
@@ -56,15 +78,16 @@ class StockService:
         existing_stock = stock_repository.get_stock_by_symbol(stock.symbol)
 
         if existing_stock:
-            raise FinPilotException(
-                f"Stock '{stock.symbol}' already exists."
-            )
-
+            logger.warning(f"Stock {stock.symbol} already exists")
+            raise StockAlreadyExistsException(stock.symbol)
+            
         created_stock = stock_repository.create_stock(
             stock.model_dump()
         )
+        logger.info(f"Stock {stock.symbol} created successfully")
 
-        return StockResponse(**created_stock)       
+        return StockResponse(**created_stock)  
+         
     def update_stock(self,symbol: str,stock: StockUpdate,) -> StockResponse:
         """
         Updates a stock by its symbol.
@@ -76,9 +99,13 @@ class StockService:
         )
 
         if updated_stock is None:
+            logger.warning(f"Stock {symbol} not found for update")
             raise StockNotFoundException(symbol)
 
+        logger.info(f"Stock {symbol} updated successfully")
+
         return StockResponse(**updated_stock) 
+    
     def delete_stock(self, symbol: str) -> None:
         """
         Deletes a stock by its symbol.
@@ -87,6 +114,9 @@ class StockService:
         deleted = stock_repository.delete_stock(symbol)
 
         if not deleted:
-            raise StockNotFoundException(symbol)         
+            logger.warning(f"Stock {symbol} not found for deletion")
+            raise StockNotFoundException(symbol) 
+
+        logger.info(f"Stock {symbol} deleted successfully")        
 
 stock_service = StockService()

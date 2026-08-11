@@ -9,13 +9,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.core.handlers import register_exception_handlers
 from app.routers.api import api_router
+from app.core.logger import logger
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    print("🚀 FinPilot AI starting...")
+    logger.info("🚀 FinPilot AI starting...")
     yield
-    print("🛑 FinPilot AI shutting down...")
+    logger.info("🛑 FinPilot AI shutting down...")
 
 
 app = FastAPI(

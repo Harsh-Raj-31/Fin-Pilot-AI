@@ -20,14 +20,46 @@ router = APIRouter()
     description="Returns all available stocks with optional filtering by exchange and sector.",
 )
 def get_all_stocks(
+    page: int = Query(
+    default=1,
+    ge=1,
+    description="Page number",
+),
+
+    limit: int = Query(
+        default=10,
+        ge=1,
+        le=100,
+        description="Number of stocks per page",
+    ),
+
+    search: str | None = Query(
+        default=None,
+        description="Search by company name",
+    ),
+
+    sort_by: str = Query(
+    default="symbol",
+    pattern="^(symbol|company_name|current_price|exchange|sector)$",
+    description="Field to sort by",
+    ),
+
+    order: str = Query(
+        default="asc",
+        pattern="^(asc|desc)$",
+        description="Sort order (asc or desc)",
+    ),
+
     exchange: str | None = Query(
         default=None,
         description="Filter by stock exchange (e.g. NSE)",
     ),
+
     sector: str | None = Query(
         default=None,
         description="Filter by business sector (e.g. Information Technology)",
     ),
+
 ) -> list[StockResponse]:
     """
     Returns all available stocks.
@@ -37,10 +69,15 @@ def get_all_stocks(
     - sector
     """
     return stock_service.get_all_stocks(
-        exchange=exchange,
-        sector=sector,
-    )
-
+    page=page,
+    limit=limit,
+    search=search,
+    sort_by=sort_by,
+    order=order,
+    exchange=exchange,
+    sector=sector,
+)
+  
 
 @router.get(
     "/stocks/{symbol}",

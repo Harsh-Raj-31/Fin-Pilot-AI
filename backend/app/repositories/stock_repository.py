@@ -2,16 +2,41 @@ from app.database.mongodb import database
 
 
 class StockRepository:
+
     def __init__(self):
         self.collection = database["stocks"]
 
-    def get_all_stocks(self) -> list[dict]:
-        """
-        Returns all stock documents from MongoDB.
-        """
-        stocks = list(self.collection.find({}, {"_id": 0}))
-        return stocks
+    def get_all_stocks(
+    self,
+    page: int = 1,
+    limit: int = 10,
+    search: str | None = None,
+    sort_by: str = "symbol",
+    order: str = "asc",
+) -> list[dict]:
+        skip = (page - 1) * limit
 
+        query = {}
+
+        if search:
+           query = {
+               "company_name": {
+                   "$regex": search,
+                   "$options": "i",
+               }
+           }
+
+        sort_order = 1 if order.lower() == "asc" else -1
+
+        stocks = list(
+            self.collection.find(query, {"_id": 0})
+            .sort(sort_by, sort_order)
+            .skip(skip)
+            .limit(limit)
+        )
+
+        return stocks
+        
 
     def create_stock(self, stock: dict) -> dict:
         """
@@ -29,7 +54,12 @@ class StockRepository:
             {"_id": 0},
         )
         return stock
-    def update_stock(self,symbol: str,stock: dict,) -> dict | None:
+    
+    def update_stock(
+            self,
+            symbol: str,
+            stock: dict,
+            ) -> dict | None:
          """
          Updates a stock by its symbol.
          """
