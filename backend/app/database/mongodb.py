@@ -11,3 +11,8 @@ database["stocks"].create_index(
     [("symbol", ASCENDING)],
     unique=True,
 )
+
+database["users"].create_index(
+    [("email", ASCENDING)],
+    unique=True,
+)

@@ -10,7 +10,7 @@ from app.config import settings
 from app.core.handlers import register_exception_handlers
 from app.routers.api import api_router
 from app.core.logger import logger
-
+from app.routers.users import router as user_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -42,6 +42,11 @@ app.add_middleware(
 # Register routers
 app.include_router(
     api_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    user_router,
     prefix="/api/v1",
 )
 
