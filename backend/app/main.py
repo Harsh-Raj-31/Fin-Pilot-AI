@@ -53,4 +53,4 @@ app.include_router(
 # steps to run backend
 # cd C:\Projects\Fin-Pilot-AI\backend
 # .venv\Scripts\activate
-# python -m uvicorn app.main:app --reload
+# python -m uvicorn app.main:app --reload 

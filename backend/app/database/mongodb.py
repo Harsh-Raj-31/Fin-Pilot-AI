@@ -16,3 +16,7 @@ database["users"].create_index(
     [("email", ASCENDING)],
     unique=True,
 )
+
+database["portfolios"].create_index(
+    [("user_id", ASCENDING)],
+)
