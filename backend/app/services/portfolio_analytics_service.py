@@ -1,10 +1,14 @@
+from fastapi import HTTPException, status
 from app.repositories.portfolio_repository import PortfolioRepository
+from app.services.market_data_service import MarketDataService
+
 
 
 class PortfolioAnalyticsService:
 
     def __init__(self):
         self.portfolio_repository = PortfolioRepository()
+        self.market_data_service = MarketDataService()
 
     def calculate_portfolio_analytics(
         self,
@@ -21,8 +25,16 @@ class PortfolioAnalyticsService:
             quantity = portfolio["quantity"]
             average_price = portfolio["average_price"]
 
-            # Temporary current price
-            current_price = average_price
+            try:
+                current_price = self.market_data_service.get_current_price(
+                     portfolio["symbol"]
+                )
+            except RuntimeError as e:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail=str(e),
+                )
+                
             invested_amount = quantity * average_price
             current_value = quantity * current_price
 
