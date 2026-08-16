@@ -7,6 +7,8 @@ from app.schemas.portfolio import (
     PortfolioUpdate,
 )
 from app.services.portfolio_service import PortfolioService
+from app.schemas.portfolio_analytics import PortfolioAnalyticsResponse
+from app.services.portfolio_analytics_service import PortfolioAnalyticsService
 
 
 router = APIRouter(
@@ -15,6 +17,8 @@ router = APIRouter(
 )
 
 portfolio_service = PortfolioService()
+
+portfolio_analytics_service = PortfolioAnalyticsService()
 
 
 @router.post(
@@ -44,6 +48,19 @@ def get_my_portfolio(
     user_id = current_user["id"]
 
     return portfolio_service.get_user_portfolios(user_id)
+
+@router.get(
+    "/analytics",
+    response_model=PortfolioAnalyticsResponse,
+)
+def get_portfolio_analytics(
+    current_user: dict = Depends(get_current_user),
+):
+    user_id = current_user["id"]
+
+    return portfolio_analytics_service.calculate_portfolio_analytics(
+        user_id
+    )
 
 @router.put(
     "/{portfolio_id}",
@@ -92,3 +109,5 @@ def delete_portfolio(
         )
 
     return None
+
+
