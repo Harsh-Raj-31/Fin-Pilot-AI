@@ -7,6 +7,7 @@ from app.schemas.stock import (
     StockUpdate,
 )
 from app.services.stock_service import stock_service
+from app.schemas.stock_history import StockHistoryResponse
 
 router = APIRouter()
 
@@ -77,6 +78,33 @@ def get_all_stocks(
     exchange=exchange,
     sector=sector,
 )
+
+@router.get(
+    "/stocks/{symbol}/history",
+    tags=["Stocks"],
+    response_model=list[StockHistoryResponse],
+    status_code=status.HTTP_200_OK,
+    summary="Get stock price history",
+    description="Returns historical price data for a stock.",
+)
+def get_stock_history(
+    symbol: str = Path(
+        ...,
+        description="Stock symbol (e.g. HDFCBANK, INFY, TCS)",
+    ),
+    period: str = Query(
+        default="1mo",
+        pattern="^(1d|5d|1mo|3mo|6mo|1y)$",
+        description="Historical data period",
+    ),
+) -> list[StockHistoryResponse]:
+    """
+    Returns historical market data for a stock.
+    """
+    return stock_service.get_stock_history(
+        symbol=symbol,
+        period=period,
+    )
 
 @router.get(
     "/stocks/{symbol}/analysis",

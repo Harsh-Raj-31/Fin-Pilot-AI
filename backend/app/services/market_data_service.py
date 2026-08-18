@@ -67,4 +67,41 @@ class MarketDataService:
         except Exception as e:
             raise RuntimeError(
                 f"Failed to fetch market data for {symbol}: {e}"
-            ) from e    
+            ) from e  
+
+    def get_stock_history(
+        self,
+        symbol: str,
+        period: str = "1mo",
+    ) -> list[dict]:
+
+        try:
+            ticker = yf.Ticker(f"{symbol}.NS")
+
+            data = ticker.history(period=period)
+
+            if data.empty:
+                raise ValueError(
+                    f"No historical market data found for {symbol}"
+                )
+
+            history = []
+
+            for date, row in data.iterrows():
+
+                history.append({
+                    "date": date.strftime("%Y-%m-%d"),
+                    "open": round(float(row["Open"]), 2),
+                    "high": round(float(row["High"]), 2),
+                    "low": round(float(row["Low"]), 2),
+                    "close": round(float(row["Close"]), 2),
+                    "volume": int(row["Volume"]),
+                })
+
+            return history
+
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to fetch historical market data "
+                f"for {symbol}: {e}"
+            ) from e          
