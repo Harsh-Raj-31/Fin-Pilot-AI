@@ -77,6 +77,25 @@ def get_all_stocks(
     exchange=exchange,
     sector=sector,
 )
+
+@router.get(
+    "/stocks/{symbol}/analysis",
+    tags=["Stocks"],
+    response_model=StockResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get stock market analysis",
+    description="Returns stock details along with latest market data.",
+)
+def get_stock_analysis(
+    symbol: str = Path(
+        ...,
+        description="Stock symbol (e.g. TCS, INFY, RELIANCE)",
+    ),
+) -> StockResponse:
+    """
+    Returns stock information with latest market data.
+    """
+    return stock_service.get_stock_analysis(symbol)
   
 
 @router.get(
@@ -87,6 +106,8 @@ def get_all_stocks(
     summary="Get stock by symbol",
     description="Returns details for a specific stock symbol.",
 )
+
+
 def get_stock_by_symbol(
     symbol: str = Path(
         ...,

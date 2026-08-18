@@ -29,6 +29,27 @@ class StockResponse(BaseModel):
         description="Business sector",
     )
 
+    previous_close: float | None = Field(
+    default=None,
+    description="Previous closing price",
+    )
+
+    day_high: float | None = Field(
+        default=None,
+        description="Highest price during the trading day",
+    )
+
+    day_low: float | None = Field(
+        default=None,
+        description="Lowest price during the trading day",
+    )
+
+    volume: int | None = Field(
+        default=None,
+        description="Trading volume",
+    )
+
+    
 
 class StockCreate(BaseModel):
     symbol: str = Field(

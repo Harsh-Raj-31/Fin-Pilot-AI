@@ -3,17 +3,18 @@ from app.schemas.stock import (
     StockCreate,
     StockUpdate,
 )
-
 from app.repositories.stock_repository import stock_repository
-
 from app.core.exceptions import (
     StockAlreadyExistsException,
     StockNotFoundException,
 )
-
 from app.core.logger import logger
+from app.services.market_data_service import MarketDataService
 
 class StockService:
+
+    def __init__(self):
+        self.market_data_service = MarketDataService()
 
     def get_all_stocks(
     self,
@@ -68,7 +69,26 @@ class StockService:
 
       return StockResponse(**stock)
 
-      
+
+    def get_stock_analysis(
+        self,
+        symbol: str,
+    ) -> StockResponse:
+
+        stock = stock_repository.get_stock_by_symbol(symbol)
+
+        if stock is None:
+            logger.warning(f"Stock {symbol} not found")
+            raise StockNotFoundException(symbol)
+
+        market_data = self.market_data_service.get_stock_market_data(
+            symbol.upper()
+        )
+
+        stock.update(market_data)
+
+        return StockResponse(**stock)    
+
 
     def create_stock(self, stock: StockCreate) -> StockResponse:
         """
