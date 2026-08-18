@@ -104,4 +104,73 @@ class MarketDataService:
             raise RuntimeError(
                 f"Failed to fetch historical market data "
                 f"for {symbol}: {e}"
-            ) from e          
+            ) from e    
+
+    def get_stock_performance(
+        self,
+        symbol: str,
+        period: str = "1mo",
+    ) -> dict:
+
+        try:
+            history = self.get_stock_history(
+                symbol,
+                period,
+            )
+
+            if not history:
+                raise ValueError(
+                    f"No historical market data found for {symbol}"
+                )
+
+            start_price = history[0]["close"]
+            current_price = history[-1]["close"]
+
+            highest_price = max(
+                item["high"]
+                for item in history
+            )
+
+            lowest_price = min(
+                item["low"]
+                for item in history
+            )
+
+            average_price = (
+                sum(item["close"] for item in history)
+                / len(history)
+            )
+
+            return_percentage = (
+                (current_price - start_price)
+                / start_price
+            ) * 100
+
+            return {
+                "symbol": symbol.upper(),
+                "period": period,
+                "start_price": round(start_price, 2),
+                "current_price": round(current_price, 2),
+                "return_percentage": round(
+                    return_percentage,
+                    2,
+                ),
+                "highest_price": round(
+                    highest_price,
+                    2,
+                ),
+                "lowest_price": round(
+                    lowest_price,
+                    2,
+                ),
+                "average_price": round(
+                    average_price,
+                    2,
+                ),
+            }
+
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to calculate performance "
+                f"for {symbol}: {e}"
+            ) from e              

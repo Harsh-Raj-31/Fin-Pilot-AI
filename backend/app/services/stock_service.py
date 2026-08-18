@@ -109,7 +109,26 @@ class StockService:
         return self.market_data_service.get_stock_history(
             symbol.upper(),
             period,
-        )       
+        )   
+
+    def get_stock_performance(
+        self,
+        symbol: str,
+        period: str = "1mo",
+    ) -> dict:
+
+        symbol = symbol.strip().upper()
+
+        stock = stock_repository.get_stock_by_symbol(symbol)
+
+        if stock is None:
+            logger.warning(f"Stock {symbol} not found")
+            raise StockNotFoundException(symbol)
+
+        return self.market_data_service.get_stock_performance(
+            symbol,
+            period,
+        )        
 
 
     def create_stock(self, stock: StockCreate) -> StockResponse:
