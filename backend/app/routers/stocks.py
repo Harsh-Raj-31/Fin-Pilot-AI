@@ -9,6 +9,7 @@ from app.schemas.stock import (
 from app.services.stock_service import stock_service
 from app.schemas.stock_history import StockHistoryResponse
 from app.schemas.stock_performance import StockPerformanceResponse
+from app.schemas.stock_indicators import StockIndicatorsResponse
 
 router = APIRouter()
 
@@ -103,6 +104,33 @@ def get_stock_performance(
     Returns performance metrics for a stock.
     """
     return stock_service.get_stock_performance(
+        symbol=symbol,
+        period=period,
+    )
+
+@router.get(
+    "/stocks/{symbol}/indicators",
+    tags=["Stocks"],
+    response_model=StockIndicatorsResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get stock technical indicators",
+    description="Returns technical indicators calculated from historical market data.",
+)
+def get_stock_indicators(
+    symbol: str = Path(
+        ...,
+        description="Stock symbol (e.g. HDFCBANK, INFY, TCS)",
+    ),
+    period: str = Query(
+        default="3mo",
+        pattern="^(1d|5d|1mo|3mo|6mo|1y)$",
+        description="Historical data period",
+    ),
+) -> StockIndicatorsResponse:
+    """
+    Returns technical indicators for a stock.
+    """
+    return stock_service.get_stock_indicators(
         symbol=symbol,
         period=period,
     )

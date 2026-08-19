@@ -1,3 +1,4 @@
+import pandas as pd
 import yfinance as yf
 
 
@@ -173,4 +174,198 @@ class MarketDataService:
             raise RuntimeError(
                 f"Failed to calculate performance "
                 f"for {symbol}: {e}"
-            ) from e              
+            ) from e
+
+    def _calculate_moving_averages(self, df):
+        """
+        Calculate 20-period SMA and EMA.
+        """
+
+        sma_20 = df["Close"].rolling(
+            window=20
+        ).mean()
+
+        ema_20 = df["Close"].ewm(
+            span=20,
+            adjust=False,
+        ).mean()
+
+        return (
+            sma_20.iloc[-1],
+            ema_20.iloc[-1],
+        )   
+
+
+    def _calculate_rsi(
+        self,
+        df,
+        period: int = 14,
+    ):
+        """
+        Calculate the Relative Strength Index (RSI).
+        """
+
+        delta = df["Close"].diff()
+
+        gains = delta.clip(lower=0)
+        losses = -delta.clip(upper=0)
+
+        average_gain = gains.rolling(
+            window=period
+        ).mean()
+
+        average_loss = losses.rolling(
+            window=period
+        ).mean()
+
+        rs = average_gain / average_loss
+
+        rsi = 100 - (
+            100 / (1 + rs)
+        )
+
+        return rsi.iloc[-1] 
+  
+
+    def _calculate_macd(self, df):
+        """
+        Calculate MACD and MACD signal line.
+        """
+
+        ema_12 = df["Close"].ewm(
+            span=12,
+            adjust=False,
+        ).mean()
+
+        ema_26 = df["Close"].ewm(
+            span=26,
+            adjust=False,
+        ).mean()
+
+        macd = ema_12 - ema_26
+
+        signal = macd.ewm(
+            span=9,
+            adjust=False,
+        ).mean()
+
+        return (
+            macd.iloc[-1],
+            signal.iloc[-1],
+        )
+
+
+    def _calculate_volatility(self, df):
+        """
+        Calculate historical daily price volatility.
+        """
+
+        returns = df["Close"].pct_change()
+
+        volatility = returns.std()
+
+        return volatility * 100
+
+
+    def _safe_round(
+        self,
+        value,
+        decimals: int = 2,
+    ):
+        """
+        Safely round indicator values.
+        Returns None when the value is NaN.
+        """
+
+        if pd.isna(value):
+            return None
+
+        return round(
+            float(value),
+            decimals,
+        )    
+
+
+    def get_stock_indicators(
+        self,
+        symbol: str,
+        period: str = "3mo",
+    ) -> dict:
+        """
+        Calculate technical indicators for a stock.
+        """
+
+        try:
+            symbol = symbol.strip().upper()
+
+            ticker = yf.Ticker(
+                f"{symbol}.NS"
+            )
+
+            history = ticker.history(
+                period=period
+            )
+
+            if history.empty:
+                raise ValueError(
+                    f"No market data found for {symbol}"
+                )
+
+            sma_20, ema_20 = (
+                self._calculate_moving_averages(
+                    history
+                )
+            )
+
+            rsi_14 = self._calculate_rsi(
+                history
+            )
+
+            macd, macd_signal = (
+                self._calculate_macd(
+                    history
+                )
+            )
+
+            volatility = (
+                self._calculate_volatility(
+                    history
+                )
+            )
+
+            return {
+                "symbol": symbol,
+                "period": period,
+                "sma_20": self._safe_round(
+                    sma_20
+                ),
+                "ema_20": self._safe_round(
+                    ema_20
+                ),
+                "rsi_14": self._safe_round(
+                    rsi_14
+                ),
+                "macd": self._safe_round(
+                    macd
+                ),
+                "macd_signal": self._safe_round(
+                    macd_signal
+                ),
+                "volatility": self._safe_round(
+                    volatility
+                ),
+            }
+
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to calculate indicators "
+                f"for {symbol}: {e}"
+            ) from e    
+
+
+    
+
+
+            
+
+                    

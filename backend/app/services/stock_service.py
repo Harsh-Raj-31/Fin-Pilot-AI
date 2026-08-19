@@ -131,6 +131,26 @@ class StockService:
         )        
 
 
+    def get_stock_indicators(
+        self,
+        symbol: str,
+        period: str = "3mo",
+    ) -> dict:
+
+        symbol = symbol.strip().upper()
+
+        stock = stock_repository.get_stock_by_symbol(symbol)
+
+        if stock is None:
+            logger.warning(f"Stock {symbol} not found")
+            raise StockNotFoundException(symbol)
+
+        return self.market_data_service.get_stock_indicators(
+            symbol,
+            period,
+        )    
+
+
     def create_stock(self, stock: StockCreate) -> StockResponse:
         """
         Creates a new stock after checking for duplicates.
