@@ -128,7 +128,40 @@ class StockService:
         return self.market_data_service.get_stock_performance(
             symbol,
             period,
-        )        
+        )   
+
+
+    def get_stock_risk(
+        self,
+        symbol: str,
+        period: str = "3mo",
+    ) -> dict:
+
+        symbol = symbol.strip().upper()
+
+        stock = stock_repository.get_stock_by_symbol(symbol)
+
+        if stock is None:
+            logger.warning(f"Stock {symbol} not found")
+            raise StockNotFoundException(symbol)
+
+        risk_data = self.market_data_service.get_stock_risk(
+            symbol,
+            period,
+        )
+
+        performance_data = (
+            self.market_data_service.get_stock_performance(
+                symbol,
+                period,
+            )
+        )
+
+        risk_data["return_percentage"] = (
+            performance_data["return_percentage"]
+        )
+
+        return risk_data         
 
 
     def get_stock_indicators(

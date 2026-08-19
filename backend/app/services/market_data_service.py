@@ -360,7 +360,194 @@ class MarketDataService:
             raise RuntimeError(
                 f"Failed to calculate indicators "
                 f"for {symbol}: {e}"
-            ) from e    
+            ) from e   
+
+
+    def _calculate_maximum_drawdown(self, df):
+        """
+        Calculate the maximum percentage drawdown
+        from a previous peak.
+        """
+
+        rolling_peak = df["Close"].cummax()
+
+        drawdown = (
+            (df["Close"] - rolling_peak)
+            / rolling_peak
+        ) * 100
+
+        return drawdown.min()
+
+
+    def _calculate_volatility_risk_score(
+        self,
+        volatility,
+    ):
+        """
+        Convert daily volatility into a
+        0-100 risk score.
+        """
+
+        if volatility is None:
+            return None
+
+        if volatility < 1:
+            return 20
+
+        if volatility < 2:
+            return 40
+
+        if volatility < 3:
+            return 70
+
+        return 100
+
+
+    def _calculate_drawdown_risk_score(
+        self,
+        maximum_drawdown,
+    ):
+        """
+        Convert maximum drawdown into a
+        0-100 risk score.
+        """
+
+        if maximum_drawdown is None:
+            return None
+
+        if maximum_drawdown > -5:
+            return 20
+
+        if maximum_drawdown > -10:
+            return 40
+
+        if maximum_drawdown > -20:
+            return 70
+
+        return 100
+
+
+    def _calculate_risk_score(
+        self,
+        volatility_score,
+        drawdown_score,
+    ):
+        """
+        Calculate the overall risk score
+        using volatility and drawdown.
+        """
+
+        if (
+            volatility_score is None
+            or drawdown_score is None
+        ):
+            return None
+
+        return (
+            volatility_score * 0.5
+            + drawdown_score * 0.5
+        )
+
+
+    def _get_risk_level(
+        self,
+        risk_score,
+    ):
+        """
+        Convert the overall risk score
+        into a human-readable risk level.
+        """
+
+        if risk_score is None:
+            return "UNKNOWN"
+
+        if risk_score <= 30:
+            return "LOW"
+
+        if risk_score <= 60:
+            return "MODERATE"
+
+        return "HIGH"
+
+
+    def get_stock_risk(
+        self,
+        symbol: str,
+        period: str = "3mo",
+    ) -> dict:
+        """
+        Calculate risk metrics for a stock.
+        """
+
+        try:
+            symbol = symbol.strip().upper()
+
+            ticker = yf.Ticker(
+                f"{symbol}.NS"
+            )
+
+            history = ticker.history(
+                period=period
+            )
+
+            if history.empty:
+                raise ValueError(
+                    f"No market data found for {symbol}"
+                )
+
+            volatility = self._calculate_volatility(
+                history
+            )
+
+            maximum_drawdown = (
+                self._calculate_maximum_drawdown(
+                    history
+                )
+            )
+
+            volatility_score = (
+                self._calculate_volatility_risk_score(
+                    volatility
+                )
+            )
+
+            drawdown_score = (
+                self._calculate_drawdown_risk_score(
+                    maximum_drawdown
+                )
+            )
+
+            risk_score = self._calculate_risk_score(
+                volatility_score,
+                drawdown_score,
+            )
+
+            risk_level = self._get_risk_level(
+                risk_score
+            )
+
+            return {
+                "symbol": symbol,
+                "period": period,
+                "volatility": self._safe_round(
+                    volatility
+                ),
+                "maximum_drawdown": self._safe_round(
+                    maximum_drawdown
+                ),
+                "return_percentage": None,
+                "risk_score": self._safe_round(
+                    risk_score
+                ),
+                "risk_level": risk_level,
+            }
+
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to calculate risk "
+                f"for {symbol}: {e}"
+            ) from e        
+                 
 
 
     

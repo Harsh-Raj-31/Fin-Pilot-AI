@@ -10,6 +10,7 @@ from app.services.stock_service import stock_service
 from app.schemas.stock_history import StockHistoryResponse
 from app.schemas.stock_performance import StockPerformanceResponse
 from app.schemas.stock_indicators import StockIndicatorsResponse
+from app.schemas.stock_risk import StockRiskResponse
 
 router = APIRouter()
 
@@ -131,6 +132,34 @@ def get_stock_indicators(
     Returns technical indicators for a stock.
     """
     return stock_service.get_stock_indicators(
+        symbol=symbol,
+        period=period,
+    )
+
+
+@router.get(
+    "/stocks/{symbol}/risk",
+    tags=["Stocks"],
+    response_model=StockRiskResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get stock risk analysis",
+    description="Returns risk metrics and risk classification for a stock.",
+)
+def get_stock_risk(
+    symbol: str = Path(
+        ...,
+        description="Stock symbol (e.g. HDFCBANK, INFY, TCS)",
+    ),
+    period: str = Query(
+        default="3mo",
+        pattern="^(1d|5d|1mo|3mo|6mo|1y)$",
+        description="Historical data period",
+    ),
+) -> StockRiskResponse:
+    """
+    Returns risk analysis for a stock.
+    """
+    return stock_service.get_stock_risk(
         symbol=symbol,
         period=period,
     )
