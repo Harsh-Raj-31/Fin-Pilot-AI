@@ -68,8 +68,9 @@ class MarketDataService:
         except Exception as e:
             raise RuntimeError(
                 f"Failed to fetch market data for {symbol}: {e}"
-            ) from e  
+            ) from e 
 
+        
     def get_stock_history(
         self,
         symbol: str,
@@ -84,6 +85,16 @@ class MarketDataService:
             if data.empty:
                 raise ValueError(
                     f"No historical market data found for {symbol}"
+                )
+
+            # Remove rows containing missing OHLC values
+            data = data.dropna(
+                subset=["Open", "High", "Low", "Close"]
+            )
+
+            if data.empty:
+                raise ValueError(
+                    f"No valid historical market data found for {symbol}"
                 )
 
             history = []
@@ -105,7 +116,7 @@ class MarketDataService:
             raise RuntimeError(
                 f"Failed to fetch historical market data "
                 f"for {symbol}: {e}"
-            ) from e    
+            ) from e                
 
     def get_stock_performance(
         self,
@@ -309,6 +320,15 @@ class MarketDataService:
             if history.empty:
                 raise ValueError(
                     f"No market data found for {symbol}"
+                )
+
+            history = history.dropna(
+               subset=["Open", "High", "Low", "Close"]
+            )
+
+            if history.empty:
+               raise ValueError(
+                 f"No valid historical market data found for {symbol}"
                 )
 
             sma_20, ema_20 = (

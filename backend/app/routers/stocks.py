@@ -11,6 +11,7 @@ from app.schemas.stock_history import StockHistoryResponse
 from app.schemas.stock_performance import StockPerformanceResponse
 from app.schemas.stock_indicators import StockIndicatorsResponse
 from app.schemas.stock_risk import StockRiskResponse
+from app.schemas.stock_comparison import StockComparisonResponse
 
 router = APIRouter()
 
@@ -161,6 +162,40 @@ def get_stock_risk(
     """
     return stock_service.get_stock_risk(
         symbol=symbol,
+        period=period,
+    )
+
+@router.get(
+    "/stocks/compare",
+    tags=["Stocks"],
+    response_model=StockComparisonResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Compare multiple stocks",
+    description="Compares multiple stocks using performance, technical indicators, and risk metrics.",
+)
+def compare_stocks(
+    symbols: str = Query(
+        ...,
+        description="Comma-separated stock symbols (e.g. HDFCBANK,TCS,INFY)",
+    ),
+    period: str = Query(
+        default="3mo",
+        pattern="^(1d|5d|1mo|3mo|6mo|1y)$",
+        description="Historical data period",
+    ),
+) -> StockComparisonResponse:
+    """
+    Compare multiple stocks.
+    """
+
+    symbol_list = [
+        symbol.strip().upper()
+        for symbol in symbols.split(",")
+        if symbol.strip()
+    ]
+
+    return stock_service.get_stock_comparison(
+        symbols=symbol_list,
         period=period,
     )
 
