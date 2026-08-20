@@ -349,6 +349,197 @@ class StockService:
             "strength": strength,
         }      
 
+
+    def get_market_condition(
+        self,
+        period: str = "3mo",
+    ) -> dict:
+
+        history = (
+            self.market_data_service.get_market_history(
+                period
+            )
+        )
+
+        if not history:
+            raise ValueError(
+                "No market data available for NIFTY 50"
+            )
+
+        closes = [
+            item["close"]
+            for item in history
+        ]
+
+        current_price = closes[-1]
+
+        start_price = closes[0]
+
+        return_percentage = (
+            (current_price - start_price)
+            / start_price
+        ) * 100
+
+        # Calculate 20-period SMA
+
+        if len(closes) >= 20:
+            sma_20 = (
+                sum(closes[-20:])
+                / 20
+            )
+        else:
+            sma_20 = None
+
+        # Calculate 20-period EMA
+
+        if len(closes) >= 20:
+
+            multiplier = 2 / (20 + 1)
+
+            ema_20 = closes[0]
+
+            for price in closes[1:]:
+
+                ema_20 = (
+                    (price - ema_20)
+                    * multiplier
+                    + ema_20
+                )
+
+        else:
+            ema_20 = None
+
+        trend = self._get_market_trend(
+          current_price,
+          sma_20,
+          ema_20,
+          return_percentage,
+        )
+
+        market_strength = (
+            self._calculate_market_strength(
+                current_price,
+                sma_20,
+                ema_20,
+                return_percentage,
+            )
+        )
+            
+        return {
+            "market": "NIFTY 50",
+            "period": period,
+            "current_price": round(
+                current_price,
+                2,
+            ),
+            "sma_20": (
+                round(sma_20, 2)
+                if sma_20 is not None
+                else None
+            ),
+            "ema_20": (
+                round(ema_20, 2)
+                if ema_20 is not None
+                else None
+            ),
+            "return_percentage": round(
+                return_percentage,
+                2,
+            ),
+            "trend": trend,
+            "market_strength": market_strength,
+        }    
+
+
+    def _get_market_trend(
+        self,
+        current_price,
+        sma_20,
+        ema_20,
+        return_percentage,
+    ):
+        """
+        Determine the overall market trend.
+        """
+
+        if (
+            current_price is None
+            or sma_20 is None
+            or ema_20 is None
+            or return_percentage is None
+        ):
+            return "NEUTRAL"
+
+        if (
+            current_price > sma_20
+            and current_price > ema_20
+            and return_percentage > 0
+        ):
+            return "BULLISH"
+
+        if (
+            current_price < sma_20
+            and current_price < ema_20
+            and return_percentage < 0
+        ):
+            return "BEARISH"
+
+        return "NEUTRAL" 
+
+
+    def _calculate_market_strength(
+        self,
+        current_price,
+        sma_20,
+        ema_20,
+        return_percentage,
+    ):
+        """
+        Calculate market strength from 0 to 100.
+        """
+
+        if (
+            current_price is None
+            or sma_20 is None
+            or ema_20 is None
+            or return_percentage is None
+        ):
+            return None
+
+        # Price vs SMA score
+
+        if current_price > sma_20:
+            sma_score = 100
+        else:
+            sma_score = 0
+
+        # Price vs EMA score
+
+        if current_price > ema_20:
+            ema_score = 100
+        else:
+            ema_score = 0
+
+        # Return score
+
+        if return_percentage >= 5:
+            return_score = 100
+        elif return_percentage >= 0:
+            return_score = 60
+        else:
+            return_score = 30
+
+        market_strength = (
+            sma_score * 0.40
+            + ema_score * 0.30
+            + return_score * 0.30
+        )
+
+        return round(
+            market_strength,
+            2,
+        )       
+
     
     def _calculate_performance_score(
         self,

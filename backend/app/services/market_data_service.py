@@ -116,7 +116,55 @@ class MarketDataService:
             raise RuntimeError(
                 f"Failed to fetch historical market data "
                 f"for {symbol}: {e}"
-            ) from e                
+            ) from e   
+
+
+    def get_market_history(
+        self,
+        period: str = "3mo",
+    ) -> list[dict]:
+
+        try:
+            ticker = yf.Ticker("^NSEI")
+
+            data = ticker.history(
+                period=period
+            )
+
+            if data.empty:
+                raise ValueError(
+                    "No historical market data found for NIFTY 50"
+                )
+
+            data = data.dropna(
+                subset=["Open", "High", "Low", "Close"]
+            )
+
+            if data.empty:
+                raise ValueError(
+                    "No valid historical market data found for NIFTY 50"
+                )
+
+            history = []
+
+            for date, row in data.iterrows():
+
+                history.append({
+                    "date": date.strftime("%Y-%m-%d"),
+                    "open": round(float(row["Open"]), 2),
+                    "high": round(float(row["High"]), 2),
+                    "low": round(float(row["Low"]), 2),
+                    "close": round(float(row["Close"]), 2),
+                    "volume": int(row["Volume"]),
+                })
+
+            return history
+
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to fetch NIFTY 50 market data: {e}"
+            ) from e                     
+
 
     def get_stock_performance(
         self,

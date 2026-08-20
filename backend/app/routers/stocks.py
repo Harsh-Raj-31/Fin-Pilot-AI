@@ -13,6 +13,7 @@ from app.schemas.stock_indicators import StockIndicatorsResponse
 from app.schemas.stock_risk import StockRiskResponse
 from app.schemas.stock_comparison import StockComparisonResponse
 from app.schemas.stock_score import StockScoreResponse
+from app.schemas.market_condition import MarketConditionResponse
 
 router = APIRouter()
 
@@ -83,6 +84,30 @@ def get_all_stocks(
     exchange=exchange,
     sector=sector,
 )
+
+
+@router.get(
+    "/market/condition",
+    tags=["Market"],
+    response_model=MarketConditionResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get market condition",
+    description="Returns the current NIFTY 50 market condition, trend, and strength.",
+)
+def get_market_condition(
+    period: str = Query(
+        default="3mo",
+        pattern="^(1d|5d|1mo|3mo|6mo|1y)$",
+        description="Historical market data period",
+    ),
+) -> MarketConditionResponse:
+    """
+    Returns the current market condition.
+    """
+
+    return stock_service.get_market_condition(
+        period=period,
+    )
 
 
 @router.get(
