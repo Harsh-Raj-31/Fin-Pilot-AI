@@ -350,6 +350,79 @@ class StockService:
         }      
 
 
+    def get_stock_signal(
+        self,
+        symbol: str,
+        period: str = "3mo",
+    ) -> dict:
+
+        symbol = symbol.strip().upper()
+
+        stock = stock_repository.get_stock_by_symbol(
+            symbol
+        )
+
+        if stock is None:
+            logger.warning(
+                f"Stock {symbol} not found"
+            )
+            raise StockNotFoundException(symbol)
+
+        # Get stock score
+
+        stock_score_data = (
+            self.get_stock_score(
+                symbol,
+                period,
+            )
+        )
+
+        stock_score = (
+            stock_score_data["overall_score"]
+        )
+
+        # Get market condition
+
+        market_data = (
+            self.get_market_condition(
+                period
+            )
+        )
+
+        market_trend = market_data["trend"]
+
+        market_strength = (
+            market_data["market_strength"]
+        )
+
+        # Determine signal
+
+        signal = self._get_stock_signal(
+            stock_score,
+            market_trend,
+        )
+
+        # Calculate confidence
+
+        confidence = (
+            self._calculate_signal_confidence(
+                stock_score,
+                market_strength,
+                market_trend,
+            )
+        )
+
+        return {
+            "symbol": symbol,
+            "period": period,
+            "stock_score": stock_score,
+            "market_trend": market_trend,
+            "market_strength": market_strength,
+            "signal": signal,
+            "confidence": confidence,
+        }    
+
+
     def get_market_condition(
         self,
         period: str = "3mo",
@@ -666,7 +739,79 @@ class StockService:
         if overall_score <= 80:
             return "STRONG"
 
-        return "VERY STRONG"        
+        return "VERY STRONG"  
+
+
+    def _get_stock_signal(
+        self,
+        stock_score,
+        market_trend,
+    ):
+        """
+        Determine the stock decision signal
+        using stock score and market trend.
+        """
+
+        if stock_score is None:
+            return "HOLD"
+
+        # Strong stock + bullish market
+        if (
+            stock_score >= 70
+            and market_trend == "BULLISH"
+        ):
+            return "BUY"
+
+        # Weak stock + bearish market
+        if (
+            stock_score < 40
+            and market_trend == "BEARISH"
+        ):
+            return "AVOID"
+
+        # Strong stock but market confirmation is missing
+        if stock_score >= 60:
+            return "WATCH"
+
+        # Default condition
+        return "HOLD"
+
+
+    def _calculate_signal_confidence(
+        self,
+        stock_score,
+        market_strength,
+        market_trend,
+    ):
+        """
+        Calculate signal confidence from 0 to 100.
+        """
+
+        if (
+            stock_score is None
+            or market_strength is None
+        ):
+            return None
+
+        if market_trend == "BULLISH":
+            market_alignment = 100
+
+        elif market_trend == "NEUTRAL":
+            market_alignment = 60
+
+        else:
+            market_alignment = 30
+
+        confidence = (
+            stock_score * 0.50
+            + market_strength * 0.30
+            + market_alignment * 0.20
+        )
+
+        return round(
+            confidence,
+            2,
+        )              
 
 
     def _calculate_comparison_score(

@@ -14,6 +14,7 @@ from app.schemas.stock_risk import StockRiskResponse
 from app.schemas.stock_comparison import StockComparisonResponse
 from app.schemas.stock_score import StockScoreResponse
 from app.schemas.market_condition import MarketConditionResponse
+from app.schemas.stock_signal import StockSignalResponse
 
 router = APIRouter()
 
@@ -249,6 +250,35 @@ def get_stock_score(
     """
 
     return stock_service.get_stock_score(
+        symbol=symbol,
+        period=period,
+    )
+
+
+@router.get(
+    "/stocks/{symbol}/signal",
+    tags=["Stocks"],
+    response_model=StockSignalResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get stock trading signal",
+    description="Returns a stock signal based on stock score and overall market condition.",
+)
+def get_stock_signal(
+    symbol: str = Path(
+        ...,
+        description="Stock symbol (e.g. HDFCBANK, INFY, RELIANCE)",
+    ),
+    period: str = Query(
+        default="3mo",
+        pattern="^(1d|5d|1mo|3mo|6mo|1y)$",
+        description="Analysis period",
+    ),
+) -> StockSignalResponse:
+    """
+    Returns the current stock signal.
+    """
+
+    return stock_service.get_stock_signal(
         symbol=symbol,
         period=period,
     )
