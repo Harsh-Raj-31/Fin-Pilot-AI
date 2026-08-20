@@ -261,7 +261,93 @@ class StockService:
             "period": period,
             "stocks": comparison_data,
             "winner": winner,
-        }    
+        }  
+
+
+    def get_stock_score(
+        self,
+        symbol: str,
+        period: str = "3mo",
+    ) -> dict:
+
+        symbol = symbol.strip().upper()
+
+        stock = stock_repository.get_stock_by_symbol(
+            symbol
+        )
+
+        if stock is None:
+            logger.warning(
+                f"Stock {symbol} not found"
+            )
+            raise StockNotFoundException(symbol)
+
+        performance = (
+            self.market_data_service.get_stock_performance(
+                symbol,
+                period,
+            )
+        )
+
+        indicators = (
+            self.market_data_service.get_stock_indicators(
+                symbol,
+                period,
+            )
+        )
+
+        risk = (
+            self.market_data_service.get_stock_risk(
+                symbol,
+                period,
+            )
+        )
+
+        # Calculate individual scores
+
+        performance_score = (
+            self._calculate_performance_score(
+                performance["return_percentage"]
+            )
+        )
+
+        technical_score = (
+            self._calculate_technical_score(
+                indicators["rsi_14"]
+            )
+        )
+
+        risk_strength_score = (
+            self._calculate_risk_strength_score(
+                risk["risk_score"]
+            )
+        )
+
+        # Calculate overall stock score
+
+        overall_score = (
+            self._calculate_overall_score(
+                performance_score,
+                technical_score,
+                risk_strength_score,
+            )
+        )
+
+        # Determine stock strength
+
+        strength = self._get_stock_strength(
+            overall_score
+        )
+
+        return {
+            "symbol": symbol,
+            "period": period,
+            "performance_score": performance_score,
+            "technical_score": technical_score,
+            "risk_score": risk["risk_score"],
+            "overall_score": overall_score,
+            "strength": strength,
+        }      
 
     
     def _calculate_performance_score(
@@ -338,6 +424,58 @@ class StockService:
             return None
 
         return 100 - risk_score
+
+
+    def _calculate_overall_score(
+        self,
+        performance_score,
+        technical_score,
+        risk_strength_score,
+    ):
+        """
+        Calculate the overall stock score.
+
+        Performance: 40%
+        Technical:   30%
+        Risk:        30%
+        """
+
+        if (
+            performance_score is None
+            or technical_score is None
+            or risk_strength_score is None
+        ):
+            return None
+
+        return (
+            performance_score * 0.40
+            + technical_score * 0.30
+            + risk_strength_score * 0.30
+        )
+    
+
+    def _get_stock_strength(
+        self,
+        overall_score,
+    ):
+        """
+        Convert the overall stock score
+        into a strength classification.
+        """
+
+        if overall_score is None:
+            return "UNKNOWN"
+
+        if overall_score <= 30:
+            return "WEAK"
+
+        if overall_score <= 60:
+            return "NEUTRAL"
+
+        if overall_score <= 80:
+            return "STRONG"
+
+        return "VERY STRONG"        
 
 
     def _calculate_comparison_score(

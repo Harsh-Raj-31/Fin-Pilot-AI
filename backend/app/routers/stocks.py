@@ -12,6 +12,7 @@ from app.schemas.stock_performance import StockPerformanceResponse
 from app.schemas.stock_indicators import StockIndicatorsResponse
 from app.schemas.stock_risk import StockRiskResponse
 from app.schemas.stock_comparison import StockComparisonResponse
+from app.schemas.stock_score import StockScoreResponse
 
 router = APIRouter()
 
@@ -82,6 +83,42 @@ def get_all_stocks(
     exchange=exchange,
     sector=sector,
 )
+
+
+@router.get(
+    "/stocks/compare",
+    tags=["Stocks"],
+    response_model=StockComparisonResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Compare multiple stocks",
+    description="Compares multiple stocks using performance, technical indicators, and risk metrics.",
+)
+def compare_stocks(
+    symbols: str = Query(
+        ...,
+        description="Comma-separated stock symbols (e.g. HDFCBANK,TCS,INFY)",
+    ),
+    period: str = Query(
+        default="3mo",
+        pattern="^(1d|5d|1mo|3mo|6mo|1y)$",
+        description="Historical data period",
+    ),
+) -> StockComparisonResponse:
+    """
+    Compare multiple stocks.
+    """
+
+    symbol_list = [
+        symbol.strip().upper()
+        for symbol in symbols.split(",")
+        if symbol.strip()
+    ]
+
+    return stock_service.get_stock_comparison(
+        symbols=symbol_list,
+        period=period,
+    )
+
 
 @router.get(
     "/stocks/{symbol}/performance",
@@ -165,39 +202,32 @@ def get_stock_risk(
         period=period,
     )
 
+
 @router.get(
-    "/stocks/compare",
+    "/stocks/{symbol}/score",
     tags=["Stocks"],
-    response_model=StockComparisonResponse,
+    response_model=StockScoreResponse,
     status_code=status.HTTP_200_OK,
-    summary="Compare multiple stocks",
-    description="Compares multiple stocks using performance, technical indicators, and risk metrics.",
+    summary="Get stock score",
+    description="Calculates the overall strength score of a stock using performance, technical indicators, and risk.",
 )
-def compare_stocks(
-    symbols: str = Query(
-        ...,
-        description="Comma-separated stock symbols (e.g. HDFCBANK,TCS,INFY)",
-    ),
+def get_stock_score(
+    symbol: str,
     period: str = Query(
         default="3mo",
         pattern="^(1d|5d|1mo|3mo|6mo|1y)$",
         description="Historical data period",
     ),
-) -> StockComparisonResponse:
+) -> StockScoreResponse:
     """
-    Compare multiple stocks.
+    Get the overall stock score.
     """
 
-    symbol_list = [
-        symbol.strip().upper()
-        for symbol in symbols.split(",")
-        if symbol.strip()
-    ]
-
-    return stock_service.get_stock_comparison(
-        symbols=symbol_list,
+    return stock_service.get_stock_score(
+        symbol=symbol,
         period=period,
     )
+
 
 @router.get(
     "/stocks/{symbol}/history",
