@@ -15,6 +15,7 @@ from app.schemas.stock_comparison import StockComparisonResponse
 from app.schemas.stock_score import StockScoreResponse
 from app.schemas.market_condition import MarketConditionResponse
 from app.schemas.stock_signal import StockSignalResponse
+from app.schemas.stock_explanation import StockExplanationResponse
 
 router = APIRouter()
 
@@ -283,6 +284,34 @@ def get_stock_signal(
         period=period,
     )
 
+
+@router.get(
+    "/stocks/{symbol}/explanation",
+    tags=["Stocks"],
+    response_model=StockExplanationResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get stock signal explanation",
+    description="Returns an explanation of the current stock signal based on stock score and market conditions.",
+)
+def get_stock_explanation(
+    symbol: str = Path(
+        ...,
+        description="Stock symbol (e.g. HDFCBANK, INFY, RELIANCE)",
+    ),
+    period: str = Query(
+        default="3mo",
+        pattern="^(1d|5d|1mo|3mo|6mo|1y)$",
+        description="Analysis period",
+    ),
+) -> StockExplanationResponse:
+    """
+    Returns an explanation of the current stock signal.
+    """
+
+    return stock_service.get_stock_explanation(
+        symbol=symbol,
+        period=period,
+    )
 
 @router.get(
     "/stocks/{symbol}/history",

@@ -777,6 +777,79 @@ class StockService:
         return "HOLD"
 
 
+    def get_stock_explanation(
+        self,
+        symbol: str,
+        period: str = "3mo",
+    ) -> dict:
+
+        symbol = symbol.strip().upper()
+
+        stock = stock_repository.get_stock_by_symbol(
+            symbol
+        )
+
+        if stock is None:
+            logger.warning(
+                f"Stock {symbol} not found"
+            )
+            raise StockNotFoundException(symbol)
+
+        # Get complete signal data
+
+        signal_data = (
+            self.get_stock_signal(
+                symbol,
+                period,
+            )
+        )
+
+        stock_score = (
+            signal_data["stock_score"]
+        )
+
+        market_trend = (
+            signal_data["market_trend"]
+        )
+
+        market_strength = (
+            signal_data["market_strength"]
+        )
+
+        signal = signal_data["signal"]
+
+        confidence = (
+            signal_data["confidence"]
+        )
+
+        # Generate reasons
+
+        reasons = self._get_signal_reasons(
+            stock_score,
+            market_trend,
+            market_strength,
+            signal,
+        )
+
+        # Generate summary
+
+        summary = self._get_signal_summary(
+            symbol,
+            signal,
+            stock_score,
+            market_trend,
+        )
+
+        return {
+            "symbol": symbol,
+            "period": period,
+            "signal": signal,
+            "confidence": confidence,
+            "summary": summary,
+            "reasons": reasons,
+        }    
+
+
     def _calculate_signal_confidence(
         self,
         stock_score,
@@ -811,7 +884,158 @@ class StockService:
         return round(
             confidence,
             2,
-        )              
+        )  
+
+
+    def _get_signal_reasons(
+        self,
+        stock_score,
+        market_trend,
+        market_strength,
+        signal,
+    ) -> list[str]:
+        """
+        Generate rule-based reasons for the stock signal.
+        """
+
+        reasons = []
+
+        # Stock score explanation
+
+        if stock_score is None:
+            reasons.append(
+                "Stock score could not be calculated."
+            )
+
+        elif stock_score >= 80:
+            reasons.append(
+                "The stock has a very strong overall score."
+            )
+
+        elif stock_score >= 60:
+            reasons.append(
+                "The stock has a strong overall score."
+            )
+
+        elif stock_score >= 40:
+            reasons.append(
+                "The stock has a moderate overall score."
+            )
+
+        else:
+            reasons.append(
+                "The stock has a weak overall score."
+            )
+
+        # Market trend explanation
+
+        if market_trend == "BULLISH":
+            reasons.append(
+                "The broader market trend is bullish."
+            )
+
+        elif market_trend == "BEARISH":
+            reasons.append(
+                "The broader market trend is bearish."
+            )
+
+        else:
+            reasons.append(
+                "The broader market trend is neutral."
+            )
+
+        # Market strength explanation
+
+        if market_strength is None:
+            reasons.append(
+                "Market strength could not be calculated."
+            )
+
+        elif market_strength >= 70:
+            reasons.append(
+                "The market is showing strong momentum."
+            )
+
+        elif market_strength >= 40:
+            reasons.append(
+                "The market is showing moderate strength."
+            )
+
+        else:
+            reasons.append(
+                "The market is showing weak strength."
+            )
+
+        # Signal-specific explanation
+
+        if signal == "BUY":
+            reasons.append(
+                "The stock score and market conditions "
+                "provide confirmation for a BUY signal."
+            )
+
+        elif signal == "WATCH":
+            reasons.append(
+                "The stock shows potential, but market "
+                "conditions do not provide enough confirmation "
+                "for a BUY signal."
+            )
+
+        elif signal == "AVOID":
+            reasons.append(
+                "Both the stock and broader market conditions "
+                "are weak."
+            )
+
+        else:
+            reasons.append(
+                "The current conditions do not provide "
+                "a strong enough setup for BUY or AVOID."
+            )
+
+        return reasons   
+
+
+    def _get_signal_summary(
+        self,
+        symbol: str,
+        signal: str,
+        stock_score,
+        market_trend: str,
+    ) -> str:
+        """
+        Generate a short summary explaining
+        the current stock signal.
+        """
+
+        if signal == "BUY":
+            return (
+                f"{symbol} currently has a BUY signal "
+                f"because the stock score is strong and "
+                f"the broader market trend is bullish."
+            )
+
+        if signal == "WATCH":
+            return (
+                f"{symbol} currently has a WATCH signal "
+                f"because the stock shows potential, "
+                f"but the broader market does not provide "
+                f"enough confirmation for a BUY signal."
+            )
+
+        if signal == "AVOID":
+            return (
+                f"{symbol} currently has an AVOID signal "
+                f"because the stock score is weak and "
+                f"the broader market trend is bearish."
+            )
+
+        return (
+            f"{symbol} currently has a HOLD signal "
+            f"because the stock score and market conditions "
+            f"do not provide a strong enough setup for "
+            f"BUY or AVOID."
+        )                 
 
 
     def _calculate_comparison_score(
