@@ -13,8 +13,120 @@ from app.services.market_data_service import MarketDataService
 
 class StockService:
 
+
     def __init__(self):
         self.market_data_service = MarketDataService()
+
+
+    def _get_or_discover_stock(
+        self,
+        symbol: str,
+    ) -> dict:
+
+        symbol = symbol.strip().upper()
+
+        # Step 1: Check MongoDB first
+
+        stock = stock_repository.get_stock_by_symbol(
+            symbol
+        )
+
+        if stock is not None:
+            return stock
+
+        # Step 2: Stock is not in MongoDB.
+        # Try to discover it from market data.
+
+        try:
+            market_data = (
+                self.market_data_service
+                .get_stock_market_data(symbol)
+            )
+
+        except Exception as e:
+            logger.warning(
+                f"Unable to discover stock {symbol}: {e}"
+            )
+            raise StockNotFoundException(symbol)
+
+        if not market_data:
+            logger.warning(
+                f"Stock {symbol} could not be discovered"
+            )
+            raise StockNotFoundException(symbol)
+
+        # Step 3: Build the stock document
+
+        stock_data = {
+        "symbol": symbol,
+        "company_name": market_data.get(
+            "company_name",
+            symbol,
+        ),
+        "exchange": market_data.get(
+            "exchange",
+            "NSE",
+        ),
+        "current_price": market_data.get(
+            "current_price"
+        ),
+        "currency": "INR",
+        "sector": market_data.get(
+            "sector",
+            "Unknown",
+        ),
+        "previous_close": market_data.get(
+            "previous_close"
+        ),
+        "day_high": market_data.get(
+            "day_high"
+        ),
+        "day_low": market_data.get(
+            "day_low"
+        ),
+        "volume": market_data.get(
+            "volume"
+        ),
+    }        
+
+        # Step 4: Save discovered stock
+
+        try:
+
+            created_stock = (
+                stock_repository.create_stock(
+                    stock_data
+                )
+            )
+
+            logger.info(
+                f"Stock {symbol} discovered "
+                f"and added to database"
+            )
+
+            return created_stock
+
+        except Exception as e:
+
+            logger.error(
+                f"Failed to save discovered stock "
+                f"{symbol}: {e}"
+            )
+
+            # Another request may have inserted
+            # the stock at the same time.
+
+            existing_stock = (
+                stock_repository.get_stock_by_symbol(
+                    symbol
+                )
+            )
+
+            if existing_stock is not None:
+                return existing_stock
+
+            raise StockNotFoundException(symbol)      
+
 
     def get_all_stocks(
     self,
@@ -77,17 +189,20 @@ class StockService:
 
         symbol = symbol.strip().upper()
 
-        stock = stock_repository.get_stock_by_symbol(symbol)
-
-        if stock is None:
-            logger.warning(f"Stock {symbol} not found")
-            raise StockNotFoundException(symbol)
-
+        stock = self._get_or_discover_stock(
+          symbol
+        )
         market_data = self.market_data_service.get_stock_market_data(
             symbol.upper()
         )
 
-        stock.update(market_data)
+        stock.update(
+            {
+              key: value
+              for key, value in market_data.items()
+              if value is not None
+            }
+        )
 
         return StockResponse(**stock) 
 
@@ -100,11 +215,9 @@ class StockService:
 
         symbol = symbol.strip().upper()
 
-        stock = stock_repository.get_stock_by_symbol(symbol)
-
-        if stock is None:
-            logger.warning(f"Stock {symbol} not found")
-            raise StockNotFoundException(symbol)
+        stock = self._get_or_discover_stock(
+           symbol
+     )
 
         return self.market_data_service.get_stock_history(
             symbol.upper(),
@@ -119,11 +232,9 @@ class StockService:
 
         symbol = symbol.strip().upper()
 
-        stock = stock_repository.get_stock_by_symbol(symbol)
-
-        if stock is None:
-            logger.warning(f"Stock {symbol} not found")
-            raise StockNotFoundException(symbol)
+        stock = self._get_or_discover_stock(
+            symbol
+        )
 
         return self.market_data_service.get_stock_performance(
             symbol,
@@ -139,11 +250,9 @@ class StockService:
 
         symbol = symbol.strip().upper()
 
-        stock = stock_repository.get_stock_by_symbol(symbol)
-
-        if stock is None:
-            logger.warning(f"Stock {symbol} not found")
-            raise StockNotFoundException(symbol)
+        stock = self._get_or_discover_stock(
+            symbol
+    )
 
         risk_data = self.market_data_service.get_stock_risk(
             symbol,
@@ -175,15 +284,9 @@ class StockService:
 
             symbol = symbol.strip().upper()
 
-            stock = stock_repository.get_stock_by_symbol(
-                symbol
+            stock = self._get_or_discover_stock(
+               symbol
             )
-
-            if stock is None:
-                logger.warning(
-                    f"Stock {symbol} not found"
-                )
-                raise StockNotFoundException(symbol)
 
             performance = (
                 self.market_data_service.get_stock_performance(
@@ -272,16 +375,10 @@ class StockService:
 
         symbol = symbol.strip().upper()
 
-        stock = stock_repository.get_stock_by_symbol(
+        stock = self._get_or_discover_stock(
             symbol
         )
-
-        if stock is None:
-            logger.warning(
-                f"Stock {symbol} not found"
-            )
-            raise StockNotFoundException(symbol)
-
+        
         performance = (
             self.market_data_service.get_stock_performance(
                 symbol,
@@ -358,16 +455,9 @@ class StockService:
 
         symbol = symbol.strip().upper()
 
-        stock = stock_repository.get_stock_by_symbol(
+        stock = self._get_or_discover_stock(
             symbol
-        )
-
-        if stock is None:
-            logger.warning(
-                f"Stock {symbol} not found"
-            )
-            raise StockNotFoundException(symbol)
-
+        ) 
         # Get stock score
 
         stock_score_data = (
@@ -785,16 +875,9 @@ class StockService:
 
         symbol = symbol.strip().upper()
 
-        stock = stock_repository.get_stock_by_symbol(
-            symbol
+        stock = self._get_or_discover_stock(
+           symbol
         )
-
-        if stock is None:
-            logger.warning(
-                f"Stock {symbol} not found"
-            )
-            raise StockNotFoundException(symbol)
-
         # Get complete signal data
 
         signal_data = (
@@ -1100,11 +1183,9 @@ class StockService:
 
         symbol = symbol.strip().upper()
 
-        stock = stock_repository.get_stock_by_symbol(symbol)
-
-        if stock is None:
-            logger.warning(f"Stock {symbol} not found")
-            raise StockNotFoundException(symbol)
+        stock = self._get_or_discover_stock(
+             symbol
+        )
 
         return self.market_data_service.get_stock_indicators(
             symbol,

@@ -30,12 +30,19 @@ class MarketDataService:
                 f"Failed to fetch market data for {symbol}: {e}"
             ) from e
 
+
     def get_stock_market_data(self, symbol: str) -> dict:
 
         try:
+            symbol = symbol.strip().upper()
+
             ticker = yf.Ticker(f"{symbol}.NS")
 
             data = ticker.history(period="5d")
+
+            data = data.dropna(
+                subset=["Open", "High", "Low", "Close"]
+            )
 
             if data.empty:
                 raise ValueError(
@@ -44,20 +51,56 @@ class MarketDataService:
 
             latest = data.iloc[-1]
 
-            current_price = round(float(latest["Close"]), 2)
-            day_high = round(float(latest["High"]), 2)
-            day_low = round(float(latest["Low"]), 2)
-            volume = int(latest["Volume"])
+            current_price = round(
+                float(latest["Close"]),
+                2,
+            )
+
+            day_high = round(
+                float(latest["High"]),
+                2,
+            )
+
+            day_low = round(
+                float(latest["Low"]),
+                2,
+            )
+
+            volume = int(
+                latest["Volume"]
+            )
 
             if len(data) >= 2:
                 previous_close = round(
-                float(data.iloc[-2]["Close"]),
-                2,
-                )            
+                    float(data.iloc[-2]["Close"]),
+                    2,
+                )
             else:
                 previous_close = current_price
 
+            # Get basic company information
+
+            info = ticker.info
+
+            company_name = info.get(
+                "longName"
+            ) or info.get(
+                "shortName"
+            ) or symbol
+
+            sector = info.get(
+                "sector"
+            ) or "Unknown"
+
+            exchange = info.get(
+                "exchange"
+            ) or "NSE"
+
             return {
+                "symbol": symbol,
+                "company_name": company_name,
+                "exchange": exchange,
+                "sector": sector,
                 "current_price": current_price,
                 "previous_close": previous_close,
                 "day_high": day_high,
@@ -67,8 +110,9 @@ class MarketDataService:
 
         except Exception as e:
             raise RuntimeError(
-                f"Failed to fetch market data for {symbol}: {e}"
-            ) from e 
+                f"Failed to fetch market data "
+                f"for {symbol}: {e}"
+            ) from e        
 
         
     def get_stock_history(
