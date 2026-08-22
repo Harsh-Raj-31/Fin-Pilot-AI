@@ -4,32 +4,44 @@ import yfinance as yf
 
 class MarketDataService:
 
+
     def get_current_price(self, symbol: str) -> float:
 
         try:
+            symbol = symbol.strip().upper()
+
             ticker = yf.Ticker(f"{symbol}.NS")
 
-            data = ticker.history(period="1d")
+            data = ticker.history(period="5d")
 
             if data.empty:
                 raise ValueError(
                     f"No market data found for {symbol}"
                 )
 
-            current_price = data["Close"].iloc[-1]
+            # Remove rows with invalid closing prices
+            data = data.dropna(
+                subset=["Close"]
+            )
 
-            if current_price is None:
+            if data.empty:
                 raise ValueError(
-                    f"Current price unavailable for {symbol}"
+                    f"No valid market price found for {symbol}"
                 )
 
-            return float(current_price)
+            current_price = data["Close"].iloc[-1]
+
+            return round(
+                float(current_price),
+                2,
+            )
 
         except Exception as e:
             raise RuntimeError(
                 f"Failed to fetch market data for {symbol}: {e}"
             ) from e
 
+    
 
     def get_stock_market_data(self, symbol: str) -> dict:
 
