@@ -9,6 +9,8 @@ from app.schemas.portfolio import (
 from app.services.portfolio_service import PortfolioService
 from app.schemas.portfolio_analytics import PortfolioAnalyticsResponse
 from app.services.portfolio_analytics_service import PortfolioAnalyticsService
+from app.schemas.portfolio_insight import PortfolioInsightResponse
+from app.services.portfolio_insight_service import PortfolioInsightService
 
 
 router = APIRouter(
@@ -19,6 +21,8 @@ router = APIRouter(
 portfolio_service = PortfolioService()
 
 portfolio_analytics_service = PortfolioAnalyticsService()
+
+portfolio_insight_service = PortfolioInsightService()
 
 
 @router.post(
@@ -59,6 +63,19 @@ def get_portfolio_analytics(
     user_id = current_user["id"]
 
     return portfolio_analytics_service.calculate_portfolio_analytics(
+        user_id
+    )
+
+@router.get(
+    "/insights",
+    response_model=PortfolioInsightResponse,
+)
+def get_portfolio_insights(
+    current_user: dict = Depends(get_current_user),
+):
+    user_id = current_user["id"]
+
+    return portfolio_insight_service.generate_portfolio_insight(
         user_id
     )
 
