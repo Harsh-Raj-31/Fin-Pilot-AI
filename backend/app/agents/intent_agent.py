@@ -31,8 +31,14 @@ class IntentAgent:
             "current price",
             "stock risk",
             "share risk",
+            "risk of",
+            "risk for",
             "stock information",
             "stock details",
+            "stock performance",
+            "share performance",
+            "information about",
+            "performing",
         ]
 
         if any(

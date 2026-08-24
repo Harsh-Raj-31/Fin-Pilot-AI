@@ -51,6 +51,13 @@ def extract_stock_symbol(
         "performing",
         "perform",
         "today",
+        "give",
+        "please",
+        "can",
+        "you",
+        "could",
+        "provide",
+        "show",
     }
 
     for word in words:
@@ -165,7 +172,7 @@ User question:
             }
 
         try:
-            stock_data = stock_tool.get_stock_price(
+            stock_data = stock_tool.get_stock_analysis(
                 symbol
             )
 
@@ -184,13 +191,24 @@ Use ONLY the stock data provided below.
 
 Do not invent additional market data.
 
-Stock symbol: {stock_data["symbol"]}
-Current price: ₹{stock_data["current_price"]:.2f}
+Stock market data:
+{stock_data["market_data"]}
+
+Stock performance:
+{stock_data["performance"]}
+
+Stock risk:
+{stock_data["risk"]}
 
 User question:
 {request.message}
 
-Answer clearly and concisely.
+Answer the user's question clearly and concisely.
+
+If the available data does not contain the reason
+for a price movement or performance, do not speculate.
+Clearly state that the available data does not provide
+the reason.
 """
 
     # -------------------------------------------------
@@ -212,7 +230,8 @@ requires the appropriate portfolio tool.
 
 User question:
 {request.message}
-"""
+"""        
+
 
     response = ai_service.generate_response(
         prompt
