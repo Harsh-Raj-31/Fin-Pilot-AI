@@ -1,5 +1,3 @@
-import re
-
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.dependencies import get_current_user
@@ -8,7 +6,9 @@ from app.services.ai_service import AIService
 from app.agents.portfolio_tool import PortfolioTool
 from app.agents.intent_agent import IntentAgent
 from app.agents.stock_tool import StockTool
-
+from app.agents.stock_symbol_resolver import (
+    StockSymbolResolver,
+)
 
 router = APIRouter(
     prefix="/ai",
@@ -19,54 +19,7 @@ ai_service = AIService()
 portfolio_tool = PortfolioTool()
 intent_agent = IntentAgent()
 stock_tool = StockTool()
-
-
-def extract_stock_symbol(
-    message: str,
-) -> str | None:
-
-    words = re.findall(
-        r"\b[A-Za-z]{2,20}\b",
-        message,
-    )
-
-    ignored_words = {
-        "what",
-        "whats",
-        "the",
-        "current",
-        "price",
-        "stock",
-        "share",
-        "of",
-        "is",
-        "for",
-        "tell",
-        "me",
-        "about",
-        "risk",
-        "information",
-        "details",
-        "how",
-        "performing",
-        "perform",
-        "today",
-        "give",
-        "please",
-        "can",
-        "you",
-        "could",
-        "provide",
-        "show",
-    }
-
-    for word in words:
-
-        if word.lower() not in ignored_words:
-            return word.upper()
-
-    return None
-
+stock_symbol_resolver = StockSymbolResolver()
 
 @router.post(
     "/chat",
@@ -159,7 +112,7 @@ User question:
 
     elif intent == IntentAgent.STOCK:
 
-        symbol = extract_stock_symbol(
+        symbol = stock_symbol_resolver.resolve(
             request.message
         )
 
