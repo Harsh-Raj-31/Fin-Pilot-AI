@@ -9,17 +9,13 @@ from app.agents.stock_tool import StockTool
 from app.agents.stock_symbol_resolver import (
     StockSymbolResolver,
 )
-
+from app.agents.agent_controller import AgentController
 router = APIRouter(
     prefix="/ai",
     tags=["AI"],
 )
 
-ai_service = AIService()
-portfolio_tool = PortfolioTool()
-intent_agent = IntentAgent()
-stock_tool = StockTool()
-stock_symbol_resolver = StockSymbolResolver()
+agent_controller = AgentController()
 
 @router.post(
     "/chat",
@@ -31,9 +27,14 @@ def chat_with_ai(
 ):
     user_id = current_user["id"]
 
-    intent = intent_agent.detect_intent(
-        request.message
+    response = agent_controller.handle(
+        user_id=user_id,
+        message=request.message,
     )
+
+    return {
+        "response": response,
+    }
 
     # -------------------------------------------------
     # PORTFOLIO
