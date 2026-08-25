@@ -23,6 +23,9 @@ class AIService:
                     "content": prompt,
                 }
             ],
+            options={
+                "temperature": 0.2,
+            },
         )
 
         return response["message"]["content"]

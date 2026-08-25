@@ -1,9 +1,8 @@
 from app.agents.intent_agent import IntentAgent
 from app.agents.portfolio_tool import PortfolioTool
 from app.agents.stock_tool import StockTool
-from app.agents.stock_symbol_resolver import (
-    StockSymbolResolver,
-)
+from app.agents.stock_symbol_resolver import StockSymbolResolver
+from app.agents.query_complexity import QueryComplexity
 from app.services.ai_service import AIService
 
 
@@ -13,11 +12,8 @@ class AgentController:
         self.intent_agent = IntentAgent()
         self.portfolio_tool = PortfolioTool()
         self.stock_tool = StockTool()
-        self.stock_symbol_resolver = (
-            StockSymbolResolver()
-        )
+        self.stock_symbol_resolver = StockSymbolResolver()
         self.ai_service = AIService()
-
 
     def handle(
         self,
@@ -25,10 +21,22 @@ class AgentController:
         message: str,
     ) -> str:
 
+        # Detect user intent
         intent = self.intent_agent.detect_intent(
             message
         )
 
+        # Detect query complexity
+        complexity = QueryComplexity.detect(
+            message
+        )
+
+        print(
+            f"[AI] Intent: {intent} | "
+            f"Complexity: {complexity}"
+        )
+
+        # Portfolio queries
         if intent == IntentAgent.PORTFOLIO:
 
             analytics = (
@@ -68,8 +76,11 @@ Holdings:
 
 User question:
 {message}
+
+Answer the user's question clearly and concisely.
 """
 
+        # Stock queries
         elif intent == IntentAgent.STOCK:
 
             symbol = (
@@ -109,12 +120,16 @@ User question:
 
 Answer the user's question clearly and concisely.
 
+For simple factual questions, answer in 1-3 sentences.
+Do not add unnecessary explanations.
+
 If the available data does not contain the reason
 for a price movement or performance, do not speculate.
 Clearly state that the available data does not provide
 the reason.
 """
 
+        # General queries
         else:
 
             prompt = f"""
@@ -132,6 +147,10 @@ User question:
 {message}
 """
 
-        return self.ai_service.generate_response(
-            prompt
-        )        
+        # Generate final response using the LLM
+        response = self.ai_service.generate_response(
+            prompt,
+        
+        )
+
+        return response
