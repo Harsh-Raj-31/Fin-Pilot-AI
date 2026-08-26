@@ -49,8 +49,14 @@ class StockTool:
             .get_stock_risk(symbol)
         )
 
+        indicators = (
+            self.market_data_service
+            .get_stock_indicators(symbol)
+        )
+
         return {
             "market_data": market_data,
             "performance": performance,
             "risk": risk,
+            "indicators": indicators,
         }

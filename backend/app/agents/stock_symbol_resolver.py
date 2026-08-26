@@ -46,17 +46,32 @@ class StockSymbolResolver:
         message: str,
     ) -> str | None:
 
+        symbols = self.resolve_multiple(
+            message
+        )
+
+        if not symbols:
+            return None
+
+        return symbols[0]
+
+    def resolve_multiple(
+        self,
+        message: str,
+    ) -> list[str]:
+
         message_upper = (
             message.upper()
             .strip()
         )
 
-        # Try longer company names first.
         aliases = sorted(
             self.STOCK_ALIASES,
             key=len,
             reverse=True,
         )
+
+        symbols = []
 
         for alias in aliases:
 
@@ -70,6 +85,12 @@ class StockSymbolResolver:
                 pattern,
                 message_upper,
             ):
-                return self.STOCK_ALIASES[alias]
 
-        return None
+                symbol = self.STOCK_ALIASES[
+                    alias
+                ]
+
+                if symbol not in symbols:
+                    symbols.append(symbol)
+
+        return symbols
