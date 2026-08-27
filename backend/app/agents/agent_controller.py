@@ -232,13 +232,31 @@ Answer clearly and concisely.
                     )
                 )
 
-                response_lines = [
-                    "FinPilot Stock Comparison",
-                    "",
-                    f"Overall stronger stock: "
-                    f"{comparison['winner']}",
-                    "",
-                ]
+                if comparison["winner"] is None:
+
+                    response_lines = [
+                        "FinPilot Stock Comparison",
+                        "",
+                        "Comparison result: TIE",
+                        "",
+                        "Both stocks have the same overall score.",
+                        "",
+                    ]
+
+                else:
+
+                    response_lines = [
+                        "FinPilot Stock Comparison",
+                        "",
+                        f"Overall stronger stock: "
+                        f"{comparison['winner']}",
+                        "",
+                        f"Score difference: "
+                        f"{comparison['score_difference']} point(s)",
+                        f"Comparison strength: "
+                        f"{comparison['comparison_strength']}",
+                        "",
+                    ]                
 
                 for stock in comparison["stocks"]:
 
@@ -283,10 +301,21 @@ Answer clearly and concisely.
                     )
 
                 response_lines.append(
-                    "This comparison is based only "
-                    "on FinPilot's current scoring model "
-                    "and the available market data."
+                    "Key observations:"
                 )
+
+                for observation in comparison["observations"]:
+                    response_lines.append(
+                        f"- {observation}"
+                    )
+
+                response_lines.append("")
+                response_lines.append(
+                     "This comparison is based only "
+                     "on FinPilot's current scoring model "
+                     "and the available market data."
+                 )
+
 
                 return "\n".join(
                     response_lines

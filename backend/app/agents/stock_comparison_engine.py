@@ -6,6 +6,12 @@ class StockComparisonEngine:
         stock_data_list: list[dict],
     ) -> dict:
 
+        if len(stock_data_list) < 2:
+            raise ValueError(
+                "At least two stocks are required "
+                "for comparison."
+            )
+
         results = []
 
         for stock_data in stock_data_list:
@@ -75,7 +81,6 @@ class StockComparisonEngine:
             macd = indicators["macd"]
             macd_signal = indicators["macd_signal"]
 
-            # RSI
             if 50 <= rsi <= 70:
                 rsi_score = 13
 
@@ -88,9 +93,9 @@ class StockComparisonEngine:
             else:
                 rsi_score = 5
 
-            # MACD
             if macd > macd_signal:
                 macd_score = 12
+
             else:
                 macd_score = 5
 
@@ -120,7 +125,7 @@ class StockComparisonEngine:
                 risk_points = 0
 
             # --------------------------------------------------
-            # TOTAL
+            # TOTAL SCORE
             # --------------------------------------------------
 
             total_score = (
@@ -135,13 +140,16 @@ class StockComparisonEngine:
                     "symbol": stock_data[
                         "market_data"
                     ]["symbol"],
+
                     "score": total_score,
+
                     "breakdown": {
                         "performance": performance_score,
                         "trend": trend_score,
                         "momentum": momentum_score,
                         "risk": risk_points,
                     },
+
                     "metrics": {
                         "return_percentage":
                             return_percentage,
@@ -179,15 +187,205 @@ class StockComparisonEngine:
                 }
             )
 
-        # Highest score first
+        # --------------------------------------------------
+        # SORT BY SCORE
+        # --------------------------------------------------
+
         results.sort(
             key=lambda x: x["score"],
             reverse=True,
         )
 
-        winner = results[0]["symbol"]
+        first = results[0]
+        second = results[1]
+
+        score_difference = (
+            first["score"]
+            - second["score"]
+        )
+
+        # --------------------------------------------------
+        # WINNER / TIE
+        # --------------------------------------------------
+
+        if score_difference == 0:
+            winner = None
+
+        else:
+            winner = first["symbol"]
+
+        # --------------------------------------------------
+        # COMPARISON STRENGTH
+        # --------------------------------------------------
+
+        if score_difference <= 2:
+            comparison_strength = "VERY CLOSE"
+
+        elif score_difference <= 5:
+            comparison_strength = "CLOSE"
+
+        elif score_difference <= 10:
+            comparison_strength = "MODERATE"
+
+        else:
+            comparison_strength = "CLEAR"
+
+        # --------------------------------------------------
+        # FACTOR DIFFERENCES
+        # --------------------------------------------------
+
+        factor_differences = {}
+
+        for factor in [
+            "performance",
+            "trend",
+            "momentum",
+            "risk",
+        ]:
+
+            first_score = first[
+                "breakdown"
+            ][factor]
+
+            second_score = second[
+                "breakdown"
+            ][factor]
+
+            factor_differences[factor] = (
+                first_score - second_score
+            )
+
+        # --------------------------------------------------
+        # RAW METRIC COMPARISON
+        # --------------------------------------------------
+
+        first_metrics = first["metrics"]
+        second_metrics = second["metrics"]
+
+        observations = []
+
+        # Return
+        if (
+            first_metrics["return_percentage"]
+            > second_metrics["return_percentage"]
+        ):
+            observations.append(
+                f"{first['symbol']} has the "
+                f"better 1-month return."
+            )
+
+        elif (
+            first_metrics["return_percentage"]
+            < second_metrics["return_percentage"]
+        ):
+            observations.append(
+                f"{second['symbol']} has the "
+                f"better 1-month return."
+            )
+
+        # Risk score
+        if (
+            first_metrics["risk_score"]
+            < second_metrics["risk_score"]
+        ):
+            observations.append(
+                f"{first['symbol']} has the "
+                f"lower risk score."
+            )
+
+        elif (
+            first_metrics["risk_score"]
+            > second_metrics["risk_score"]
+        ):
+            observations.append(
+                f"{second['symbol']} has the "
+                f"lower risk score."
+            )
+
+        # Volatility
+        if (
+            first_metrics["volatility"]
+            < second_metrics["volatility"]
+        ):
+            observations.append(
+                f"{first['symbol']} has lower "
+                f"volatility."
+            )
+
+        elif (
+            first_metrics["volatility"]
+            > second_metrics["volatility"]
+        ):
+            observations.append(
+                f"{second['symbol']} has lower "
+                f"volatility."
+            )
+
+        # Maximum drawdown
+        if (
+            first_metrics["maximum_drawdown"]
+            > second_metrics["maximum_drawdown"]
+        ):
+            observations.append(
+                f"{first['symbol']} has the "
+                f"smaller maximum drawdown."
+            )
+
+        elif (
+            first_metrics["maximum_drawdown"]
+            < second_metrics["maximum_drawdown"]
+        ):
+            observations.append(
+                f"{second['symbol']} has the "
+                f"smaller maximum drawdown."
+            )
+
+        # Trend
+        if (
+            first_metrics["current_price"]
+            > first_metrics["sma_20"]
+            and first_metrics["current_price"]
+            > first_metrics["ema_20"]
+        ):
+            observations.append(
+                f"{first['symbol']} is above "
+                f"both its 20-day SMA and EMA."
+            )
+
+        elif (
+            second_metrics["current_price"]
+            > second_metrics["sma_20"]
+            and second_metrics["current_price"]
+            > second_metrics["ema_20"]
+        ):
+            observations.append(
+                f"{second['symbol']} is above "
+                f"both its 20-day SMA and EMA."
+            )
+
+        # --------------------------------------------------
+        # RETURN RESULT
+        # --------------------------------------------------
 
         return {
             "winner": winner,
-            "stocks": results,
+
+            "winner_score": (
+                first["score"]
+            ),
+
+            "score_difference":
+                score_difference,
+
+            "comparison_strength":
+                comparison_strength,
+
+            "factor_differences":
+                factor_differences,
+
+            "observations":
+                observations,
+
+            "stocks":
+                results,
         }
