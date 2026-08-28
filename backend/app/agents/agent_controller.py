@@ -3,6 +3,7 @@ from app.agents.portfolio_tool import PortfolioTool
 from app.agents.stock_tool import StockTool
 from app.agents.stock_symbol_resolver import StockSymbolResolver
 from app.agents.query_complexity import QueryComplexity
+from app.agents.portfolio_query_type import PortfolioQueryType
 from app.agents.recommendation_engine import RecommendationEngine
 from app.agents.stock_comparison_engine import StockComparisonEngine
 from app.services.ai_service import AIService
@@ -63,6 +64,208 @@ class AgentController:
                     user_id
                 )
             )
+
+            # --------------------------------------------------
+            # PORTFOLIO QUERY TYPE
+            # --------------------------------------------------
+
+            portfolio_query_type = (
+                PortfolioQueryType.detect(
+                    message
+                )
+            )
+
+            print(
+                "[AI] Portfolio query type: "
+                f"{portfolio_query_type}"
+            )
+
+            # ==================================================
+            # RETURN
+            # ==================================================
+
+            if (
+                portfolio_query_type
+                == PortfolioQueryType.RETURN
+            ):
+
+                return (
+                    "Your portfolio return is "
+                    f"{analytics['profit_loss_percentage']:.2f}%."
+                )
+
+            # ==================================================
+            # CURRENT VALUE
+            # ==================================================
+
+            elif (
+                portfolio_query_type
+                == PortfolioQueryType.VALUE
+            ):
+
+                return (
+                    "Your current portfolio value is "
+                    f"₹{analytics['total_current_value']:.2f}."
+                )
+
+            # ==================================================
+            # PROFIT / LOSS
+            # ==================================================
+
+            elif (
+                portfolio_query_type
+                == PortfolioQueryType.PROFIT_LOSS
+            ):
+
+                profit_loss = (
+                    analytics[
+                        "total_profit_loss"
+                    ]
+                )
+
+                if profit_loss > 0:
+
+                    return (
+                        f"Your portfolio is currently "
+                        f"in profit of ₹{profit_loss:.2f}."
+                    )
+
+                elif profit_loss < 0:
+
+                    return (
+                        f"Your portfolio is currently "
+                        f"in a loss of "
+                        f"₹{abs(profit_loss):.2f}."
+                    )
+
+                else:
+
+                    return (
+                        "Your portfolio is currently "
+                        "at break-even."
+                    )
+
+            # ==================================================
+            # BEST PERFORMER
+            # ==================================================
+
+            elif (
+                portfolio_query_type
+                == PortfolioQueryType.BEST_PERFORMER
+            ):
+
+                symbol = (
+                    analytics[
+                        "best_performer"
+                    ]
+                )
+
+                return (
+                    f"{symbol} is your best-performing "
+                    f"holding with a return of "
+                    f"{analytics['best_performer_return']:.2f}%."
+                )
+
+            # ==================================================
+            # WORST PERFORMER
+            # ==================================================
+
+            elif (
+                portfolio_query_type
+                == PortfolioQueryType.WORST_PERFORMER
+            ):
+
+                symbol = (
+                    analytics[
+                        "worst_performer"
+                    ]
+                )
+
+                return (
+                    f"{symbol} is your worst-performing "
+                    f"holding with a return of "
+                    f"{analytics['worst_performer_return']:.2f}%."
+                )
+
+            # ==================================================
+            # HIGHEST RISK
+            # ==================================================
+
+            elif (
+                portfolio_query_type
+                == PortfolioQueryType.HIGHEST_RISK
+            ):
+
+                symbol = (
+                    analytics[
+                        "highest_risk_holding"
+                    ]
+                )
+
+                risk_score = (
+                    analytics[
+                        "highest_risk_score"
+                    ]
+                )
+
+                risk_level = (
+                    analytics[
+                        "highest_risk_level"
+                    ]
+                )
+
+                return (
+                    f"{symbol} is your highest-risk "
+                    f"holding with a risk score of "
+                    f"{risk_score:.1f} "
+                    f"({risk_level})."
+                )
+
+            # ==================================================
+            # LARGEST HOLDING
+            # ==================================================
+
+            elif (
+                portfolio_query_type
+                == PortfolioQueryType.LARGEST_HOLDING
+            ):
+
+                symbol = (
+                    analytics[
+                        "largest_holding"
+                    ]
+                )
+
+                allocation = (
+                    analytics[
+                        "largest_allocation"
+                    ]
+                )
+
+                return (
+                    f"{symbol} is your largest holding, "
+                    f"representing "
+                    f"{allocation:.2f}% of your "
+                    f"portfolio."
+                )
+
+            # ==================================================
+            # DIVERSIFICATION
+            # ==================================================
+
+            elif (
+                portfolio_query_type
+                == PortfolioQueryType.DIVERSIFICATION
+            ):
+
+                return (
+                    "Your portfolio is "
+                    f"{analytics['diversification_level'].lower()}."
+                )
+
+            # ==================================================
+            # GENERAL PORTFOLIO ANALYSIS
+            # ==================================================
 
             prompt = f"""
 You are FinPilot AI, a financial portfolio assistant.
@@ -155,6 +358,9 @@ Holdings:
 Query type:
 {query_type}
 
+Portfolio query type:
+{portfolio_query_type}
+
 User question:
 {message}
 
@@ -211,9 +417,6 @@ For a complex question:
                 query_type
                 == QueryComplexity.RECOMMENDATION
             ):
-
-                # Recommendation is designed
-                # for one stock at a time.
 
                 if len(symbols) > 1:
 
@@ -458,10 +661,6 @@ For a complex question:
 
                 stock_data_list = []
 
-                # --------------------------------------------------
-                # GET DATA FOR EACH STOCK
-                # --------------------------------------------------
-
                 for symbol in symbols:
 
                     stock_data = (
@@ -474,10 +673,6 @@ For a complex question:
                     stock_data_list.append(
                         stock_data
                     )
-
-                # --------------------------------------------------
-                # RUN COMPARISON ENGINE
-                # --------------------------------------------------
 
                 comparison = (
                     StockComparisonEngine.compare(
@@ -505,10 +700,6 @@ For a complex question:
                         "Both stocks have the same "
                         "overall score.",
                     ]
-
-                    # --------------------------------------------------
-                    # TIE BREAKER
-                    # --------------------------------------------------
 
                     if comparison.get(
                         "tie_breaker"
