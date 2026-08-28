@@ -444,19 +444,26 @@ For a complex question:
                 # HEADER
                 # --------------------------------------------------
 
-                if comparison[
-                    "winner"
-                ] is None:
+                if comparison["winner"] is None:
 
                     response_lines = [
                         "FinPilot Stock Comparison",
                         "",
                         "Comparison result: TIE",
                         "",
-                        "Both stocks have the "
-                        "same overall score.",
+                        "Both stocks have the same overall score.",
                         "",
                     ]
+
+                    if comparison.get("tie_breaker"):
+
+                        response_lines.extend(
+                            [
+                                "Metric-based advantage: "
+                                f"{comparison['tie_breaker']}",
+                                "",
+                            ]
+                        )
 
                 else:
 
@@ -467,14 +474,40 @@ For a complex question:
                         f"{comparison['winner']}",
                         "",
                         "Score difference: "
-                        f"{comparison['score_difference']} "
-                        "point(s)",
-
+                        f"{comparison['score_difference']} point(s)",
+                
                         f"Comparison strength: "
                         f"{comparison['comparison_strength']}",
 
                         "",
+                    ]                
+                # --------------------------------------------------
+                # METRIC LEADERS
+                # --------------------------------------------------
+
+                metric_leaders = comparison.get(
+                    "metric_leaders",
+                    {}
+                )
+
+                response_lines.extend(
+                    [
+                        "Metric leaders:",
+                        f"- Best performance: "
+                        f"{metric_leaders.get('best_performance') or 'TIE'}",
+                
+                        f"- Lowest risk: "
+                        f"{metric_leaders.get('lowest_risk') or 'TIE'}",
+                
+                        f"- Lowest volatility: "
+                        f"{metric_leaders.get('lowest_volatility') or 'TIE'}",
+                
+                        f"- Smallest drawdown: "
+                        f"{metric_leaders.get('smallest_drawdown') or 'TIE'}",
+                
+                        "",
                     ]
+                )
 
                 # --------------------------------------------------
                 # STOCK RESULTS
