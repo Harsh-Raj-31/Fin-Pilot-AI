@@ -27,7 +27,10 @@ class PortfolioAnalyticsService:
         total_current_value = 0
         holdings = []
 
-        # Calculate analytics for every holding
+        # --------------------------------------------------
+        # CALCULATE ANALYTICS FOR EVERY HOLDING
+        # --------------------------------------------------
+
         for portfolio in portfolios:
 
             quantity = portfolio["quantity"]
@@ -35,13 +38,14 @@ class PortfolioAnalyticsService:
             symbol = portfolio["symbol"]
 
             try:
-                # Discover the stock if it does not
+
+                # Discover stock if it does not
                 # already exist in the database.
                 self.stock_service._get_or_discover_stock(
                     symbol
                 )
 
-                # Get the latest valid market price.
+                # Get latest valid market price.
                 current_price = (
                     self.market_data_service.get_current_price(
                         symbol
@@ -57,69 +61,154 @@ class PortfolioAnalyticsService:
                 )
 
             except RuntimeError as e:
+
                 raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    status_code=(
+                        status.HTTP_503_SERVICE_UNAVAILABLE
+                    ),
                     detail=str(e),
                 )
 
-            # Calculate invested amount.
+            # --------------------------------------------------
+            # INVESTED AMOUNT
+            # --------------------------------------------------
+
             invested_amount = (
                 quantity * average_price
             )
 
-            # Calculate current market value.
+            # --------------------------------------------------
+            # CURRENT VALUE
+            # --------------------------------------------------
+
             current_value = (
                 quantity * current_price
             )
 
-            # Calculate profit or loss.
+            # --------------------------------------------------
+            # PROFIT / LOSS
+            # --------------------------------------------------
+
             profit_loss = (
-                current_value - invested_amount
+                current_value
+                - invested_amount
             )
 
-            # Calculate holding return percentage.
+            # --------------------------------------------------
+            # HOLDING RETURN %
+            # --------------------------------------------------
+
             if invested_amount > 0:
+
                 profit_loss_percentage = (
-                    profit_loss / invested_amount
+                    profit_loss
+                    / invested_amount
                 ) * 100
+
             else:
+
                 profit_loss_percentage = 0
 
-            # Store holding-level analytics.
+            # --------------------------------------------------
+            # STORE HOLDING ANALYTICS
+            # --------------------------------------------------
+
             holdings.append(
                 {
                     "symbol": symbol,
                     "quantity": quantity,
                     "average_price": average_price,
                     "current_price": current_price,
-                    "invested_amount": invested_amount,
-                    "current_value": current_value,
-                    "profit_loss": profit_loss,
-                    "profit_loss_percentage": (
-                        profit_loss_percentage
-                    ),
-                    "risk_score": risk_data["risk_score"],
-                    "risk_level": risk_data["risk_level"],
+
+                    "invested_amount":
+                        invested_amount,
+
+                    "current_value":
+                        current_value,
+
+                    "profit_loss":
+                        profit_loss,
+
+                    "profit_loss_percentage":
+                        profit_loss_percentage,
+
+                    "risk_score":
+                        risk_data["risk_score"],
+
+                    "risk_level":
+                        risk_data["risk_level"],
                 }
             )
 
-            # Update portfolio totals.
+            # --------------------------------------------------
+            # UPDATE PORTFOLIO TOTALS
+            # --------------------------------------------------
+
             total_invested += invested_amount
             total_current_value += current_value
 
-        # Calculate allocation percentage
-        # for every holding.
+        # --------------------------------------------------
+        # EMPTY PORTFOLIO
+        # --------------------------------------------------
+
+        if not holdings:
+
+            return {
+                "total_invested": 0,
+                "total_current_value": 0,
+                "total_profit_loss": 0,
+                "profit_loss_percentage": 0,
+
+                "holdings": [],
+
+                "portfolio_risk_score": None,
+                "portfolio_risk_level":
+                    "NOT AVAILABLE",
+
+                "best_performer": None,
+                "best_performer_return": None,
+
+                "worst_performer": None,
+                "worst_performer_return": None,
+
+                "highest_risk_holding": None,
+                "highest_risk_score": None,
+                "highest_risk_level": None,
+
+                "largest_holding": None,
+                "largest_allocation": None,
+
+                "diversification_level":
+                    "NOT AVAILABLE",
+
+                "observations": [
+                    "Portfolio has no holdings.",
+                    "Portfolio risk cannot be "
+                    "calculated without holdings.",
+                ],
+            }
+
+        # --------------------------------------------------
+        # ALLOCATION PERCENTAGE
+        # --------------------------------------------------
+
         for holding in holdings:
 
             if total_invested > 0:
+
                 holding["allocation_percentage"] = (
                     holding["invested_amount"]
                     / total_invested
                 ) * 100
+
             else:
+
                 holding["allocation_percentage"] = 0
 
-        # Calculate weighted portfolio risk score.
+        # --------------------------------------------------
+        # WEIGHTED PORTFOLIO RISK
+        # --------------------------------------------------
+
         portfolio_risk_score = 0
 
         for holding in holdings:
@@ -130,125 +219,302 @@ class PortfolioAnalyticsService:
                 / 100
             )
 
-        # Determine portfolio risk level.
+        portfolio_risk_score = round(
+            portfolio_risk_score,
+            2,
+        )
+
+        # --------------------------------------------------
+        # PORTFOLIO RISK LEVEL
+        # --------------------------------------------------
+
         if portfolio_risk_score < 30:
+
             portfolio_risk_level = "LOW"
 
         elif portfolio_risk_score < 60:
+
             portfolio_risk_level = "MEDIUM"
 
         elif portfolio_risk_score < 80:
+
             portfolio_risk_level = "HIGH"
 
         else:
+
             portfolio_risk_level = "VERY HIGH"
 
-        # Determine portfolio summary.
-        if holdings:
+        # --------------------------------------------------
+        # BEST PERFORMER
+        # --------------------------------------------------
 
-            # Best performer based on return percentage.
-            best_holding = max(
-                holdings,
-                key=lambda holding: (
-                    holding["profit_loss_percentage"]
-                ),
+        best_holding = max(
+            holdings,
+            key=lambda holding:
+                holding["profit_loss_percentage"],
+        )
+
+        best_performer = (
+            best_holding["symbol"]
+        )
+
+        best_performer_return = (
+            best_holding[
+                "profit_loss_percentage"
+            ]
+        )
+
+        # --------------------------------------------------
+        # WORST PERFORMER
+        # --------------------------------------------------
+
+        worst_holding = min(
+            holdings,
+            key=lambda holding:
+                holding["profit_loss_percentage"],
+        )
+
+        worst_performer = (
+            worst_holding["symbol"]
+        )
+
+        worst_performer_return = (
+            worst_holding[
+                "profit_loss_percentage"
+            ]
+        )
+
+        # --------------------------------------------------
+        # HIGHEST RISK HOLDING
+        # --------------------------------------------------
+
+        highest_risk_holding_data = max(
+            holdings,
+            key=lambda holding:
+                holding["risk_score"],
+        )
+
+        highest_risk_holding = (
+            highest_risk_holding_data["symbol"]
+        )
+
+        highest_risk_score = (
+            highest_risk_holding_data["risk_score"]
+        )
+
+        highest_risk_level = (
+            highest_risk_holding_data["risk_level"]
+        )
+
+        # --------------------------------------------------
+        # LARGEST HOLDING
+        # --------------------------------------------------
+
+        largest_holding_data = max(
+            holdings,
+            key=lambda holding:
+                holding["allocation_percentage"],
+        )
+
+        largest_holding = (
+            largest_holding_data["symbol"]
+        )
+
+        largest_allocation = (
+            largest_holding_data[
+                "allocation_percentage"
+            ]
+        )
+
+        # --------------------------------------------------
+        # DIVERSIFICATION
+        # --------------------------------------------------
+
+        if largest_allocation <= 40:
+
+            diversification_level = (
+                "WELL DIVERSIFIED"
             )
 
-            # Worst performer based on return percentage.
-            worst_holding = min(
-                holdings,
-                key=lambda holding: (
-                    holding["profit_loss_percentage"]
-                ),
+        elif largest_allocation <= 60:
+
+            diversification_level = (
+                "MODERATELY DIVERSIFIED"
             )
-
-            # Largest holding based on allocation.
-            largest_holding_data = max(
-                holdings,
-                key=lambda holding: (
-                    holding["allocation_percentage"]
-                ),
-            )
-
-            best_performer = (
-                best_holding["symbol"]
-            )
-
-            worst_performer = (
-                worst_holding["symbol"]
-            )
-
-            largest_holding = (
-                largest_holding_data["symbol"]
-            )
-
-            largest_allocation = (
-                largest_holding_data[
-                    "allocation_percentage"
-                ]
-            )
-
-            # Determine diversification level.
-            if largest_allocation <= 40:
-                diversification_level = (
-                    "WELL DIVERSIFIED"
-                )
-
-            elif largest_allocation <= 60:
-                diversification_level = (
-                    "MODERATELY DIVERSIFIED"
-                )
-
-            else:
-                diversification_level = (
-                    "HIGHLY CONCENTRATED"
-                )
 
         else:
 
-            best_performer = None
-            worst_performer = None
-            largest_holding = None
-
             diversification_level = (
-                "NOT AVAILABLE"
+                "HIGHLY CONCENTRATED"
             )
 
-        # Calculate total portfolio profit/loss.
+        # --------------------------------------------------
+        # TOTAL PROFIT / LOSS
+        # --------------------------------------------------
+
         total_profit_loss = (
             total_current_value
             - total_invested
         )
 
-        # Calculate total portfolio return.
+        # --------------------------------------------------
+        # TOTAL PORTFOLIO RETURN
+        # --------------------------------------------------
+
         if total_invested > 0:
+
             profit_loss_percentage = (
                 total_profit_loss
                 / total_invested
             ) * 100
+
         else:
+
             profit_loss_percentage = 0
 
+        # --------------------------------------------------
+        # PORTFOLIO OBSERVATIONS
+        # --------------------------------------------------
+
+        observations = []
+
+        # Overall performance
+
+        if profit_loss_percentage > 0:
+
+            observations.append(
+                "Portfolio is currently "
+                f"profitable with a return of "
+                f"{profit_loss_percentage:.2f}%."
+            )
+
+        elif profit_loss_percentage < 0:
+
+            observations.append(
+                "Portfolio is currently "
+                f"underperforming with a return "
+                f"of {profit_loss_percentage:.2f}%."
+            )
+
+        else:
+
+            observations.append(
+                "Portfolio is currently "
+                "approximately at break-even."
+            )
+
+        # Best performer
+
+        observations.append(
+            f"{best_performer} is the best-performing "
+            f"holding with a return of "
+            f"{best_performer_return:.2f}%."
+        )
+
+        # Worst performer
+
+        observations.append(
+            f"{worst_performer} is the worst-performing "
+            f"holding with a return of "
+            f"{worst_performer_return:.2f}%."
+        )
+
+        # Highest risk
+
+        observations.append(
+            f"{highest_risk_holding} has the highest "
+            f"risk score of {highest_risk_score:.1f} "
+            f"({highest_risk_level})."
+        )
+
+        # Largest allocation
+
+        observations.append(
+            f"{largest_holding} represents the largest "
+            f"portfolio allocation at "
+            f"{largest_allocation:.2f}%."
+        )
+
+        # Concentration warning
+
+        if largest_allocation > 60:
+
+            observations.append(
+                "Portfolio is highly concentrated "
+                "in one holding."
+            )
+
+        elif largest_allocation > 40:
+
+            observations.append(
+                "Portfolio has a relatively high "
+                "concentration in its largest holding."
+            )
+
+        else:
+
+            observations.append(
+                "Portfolio allocation is reasonably "
+                "distributed across holdings."
+            )
+
+        # --------------------------------------------------
+        # RETURN PORTFOLIO ANALYTICS
+        # --------------------------------------------------
+
         return {
-            "total_invested": total_invested,
-            "total_current_value": total_current_value,
-            "total_profit_loss": total_profit_loss,
-            "profit_loss_percentage": (
-                profit_loss_percentage
-            ),
-            "holdings": holdings,
-            "portfolio_risk_score": round(
+
+            "total_invested":
+                total_invested,
+
+            "total_current_value":
+                total_current_value,
+
+            "total_profit_loss":
+                total_profit_loss,
+
+            "profit_loss_percentage":
+                profit_loss_percentage,
+
+            "holdings":
+                holdings,
+
+            "portfolio_risk_score":
                 portfolio_risk_score,
-                2,
-            ),
-            "portfolio_risk_level": (
-                portfolio_risk_level
-            ),
-            "best_performer": best_performer,
-            "worst_performer": worst_performer,
-            "largest_holding": largest_holding,
-            "diversification_level": (
-                diversification_level
-            ),
+
+            "portfolio_risk_level":
+                portfolio_risk_level,
+
+            "best_performer":
+                best_performer,
+
+            "best_performer_return":
+                best_performer_return,
+
+            "worst_performer":
+                worst_performer,
+
+            "worst_performer_return":
+                worst_performer_return,
+
+            "highest_risk_holding":
+                highest_risk_holding,
+
+            "highest_risk_score":
+                highest_risk_score,
+
+            "highest_risk_level":
+                highest_risk_level,
+
+            "largest_holding":
+                largest_holding,
+
+            "largest_allocation":
+                largest_allocation,
+
+            "diversification_level":
+                diversification_level,
+
+            "observations":
+                observations,
         }
-    

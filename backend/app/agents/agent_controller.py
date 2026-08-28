@@ -11,15 +11,22 @@ from app.services.ai_service import AIService
 class AgentController:
 
     def __init__(self):
+
         self.intent_agent = IntentAgent()
+
         self.portfolio_tool = PortfolioTool()
+
         self.stock_tool = StockTool()
-        self.stock_symbol_resolver = StockSymbolResolver()
+
+        self.stock_symbol_resolver = (
+            StockSymbolResolver()
+        )
+
         self.ai_service = AIService()
 
     def handle(
         self,
-        user_id: int,
+        user_id: str,
         message: str,
     ) -> str:
 
@@ -66,15 +73,28 @@ ONLY the portfolio data provided below.
 IMPORTANT RULES:
 
 1. Never invent financial numbers or facts.
+
 2. Never use outside knowledge.
+
 3. Never assume information that is not provided.
+
 4. Do not speculate about causes of gains,
    losses, or market movements.
+
 5. If the requested information is not available,
    clearly say that it is not available in the
    provided portfolio data.
+
 6. Answer the user's actual question directly.
+
 7. Do not provide unnecessary information.
+
+8. When explaining portfolio performance, use the
+   provided observations when they are relevant.
+
+9. Clearly distinguish between portfolio-level
+   information and individual holding-level
+   information.
 
 Portfolio data:
 
@@ -91,7 +111,7 @@ Return:
 {analytics["profit_loss_percentage"]:.2f}%
 
 Portfolio risk score:
-{analytics["portfolio_risk_score"]:.2f}
+{analytics["portfolio_risk_score"]}
 
 Portfolio risk level:
 {analytics["portfolio_risk_level"]}
@@ -99,14 +119,35 @@ Portfolio risk level:
 Best performer:
 {analytics["best_performer"]}
 
+Best performer return:
+{analytics["best_performer_return"]}
+
 Worst performer:
 {analytics["worst_performer"]}
+
+Worst performer return:
+{analytics["worst_performer_return"]}
+
+Highest risk holding:
+{analytics["highest_risk_holding"]}
+
+Highest risk score:
+{analytics["highest_risk_score"]}
+
+Highest risk level:
+{analytics["highest_risk_level"]}
 
 Largest holding:
 {analytics["largest_holding"]}
 
+Largest allocation:
+{analytics["largest_allocation"]}%
+
 Diversification:
 {analytics["diversification_level"]}
+
+Portfolio observations:
+{analytics["observations"]}
 
 Holdings:
 {analytics["holdings"]}
@@ -127,6 +168,9 @@ For a simple question:
 For a complex question:
 - Analyze the provided portfolio data.
 - Explain the important factors clearly.
+- Use observations, risk, performance,
+  allocation, and diversification data
+  when relevant.
 - Organize the answer logically.
 - Do not go beyond the available data.
 """
@@ -168,7 +212,7 @@ For a complex question:
                 == QueryComplexity.RECOMMENDATION
             ):
 
-                # Recommendation is currently designed
+                # Recommendation is designed
                 # for one stock at a time.
 
                 if len(symbols) > 1:
@@ -218,15 +262,16 @@ For a complex question:
                 # --------------------------------------------------
 
                 response_lines = [
+
                     "FinPilot Recommendation: "
                     f"{recommendation['recommendation']}",
 
                     "",
 
-                    f"Score: "
+                    "Score: "
                     f"{recommendation['score']}/100",
 
-                    f"Signal strength: "
+                    "Signal strength: "
                     f"{recommendation['signal_strength']}",
 
                     "",
@@ -346,16 +391,16 @@ For a complex question:
                         "",
                         "Score breakdown:",
 
-                        f"- Performance: "
+                        "- Performance: "
                         f"{breakdown['performance']}/20",
 
-                        f"- Trend: "
+                        "- Trend: "
                         f"{breakdown['trend']}/25",
 
-                        f"- Momentum: "
+                        "- Momentum: "
                         f"{breakdown['momentum']}/25",
 
-                        f"- Risk: "
+                        "- Risk: "
                         f"{breakdown['risk']}/30",
                     ]
                 )
@@ -369,34 +414,34 @@ For a complex question:
                         "",
                         "Key metrics:",
 
-                        f"- Return: "
+                        "- Return: "
                         f"{metrics['return_percentage']}%",
 
-                        f"- RSI: "
+                        "- RSI: "
                         f"{metrics['rsi_14']}",
 
-                        f"- SMA 20: "
+                        "- SMA 20: "
                         f"₹{metrics['sma_20']}",
 
-                        f"- EMA 20: "
+                        "- EMA 20: "
                         f"₹{metrics['ema_20']}",
 
-                        f"- MACD: "
+                        "- MACD: "
                         f"{metrics['macd']}",
 
-                        f"- MACD Signal: "
+                        "- MACD Signal: "
                         f"{metrics['macd_signal']}",
 
-                        f"- Risk Score: "
+                        "- Risk Score: "
                         f"{metrics['risk_score']}",
 
-                        f"- Risk Level: "
+                        "- Risk Level: "
                         f"{metrics['risk_level']}",
 
-                        f"- Volatility: "
+                        "- Volatility: "
                         f"{metrics['volatility']}",
 
-                        f"- Maximum Drawdown: "
+                        "- Maximum Drawdown: "
                         f"{metrics['maximum_drawdown']}%",
                     ]
                 )
@@ -447,65 +492,88 @@ For a complex question:
                 if comparison["winner"] is None:
 
                     response_lines = [
+
                         "FinPilot Stock Comparison",
+
                         "",
-                        "Comparison result: TIE",
+
+                        "Comparison result: "
+                        f"{comparison.get('comparison_result', 'SCORE TIE')}",
+
                         "",
-                        "Both stocks have the same overall score.",
-                        "",
+
+                        "Both stocks have the same "
+                        "overall score.",
                     ]
 
-                    if comparison.get("tie_breaker"):
+                    # --------------------------------------------------
+                    # TIE BREAKER
+                    # --------------------------------------------------
+
+                    if comparison.get(
+                        "tie_breaker"
+                    ):
 
                         response_lines.extend(
                             [
+
+                                "",
+
                                 "Metric-based advantage: "
                                 f"{comparison['tie_breaker']}",
-                                "",
                             ]
                         )
 
                 else:
 
                     response_lines = [
+
                         "FinPilot Stock Comparison",
-                        "",
-                        "Overall stronger stock: "
-                        f"{comparison['winner']}",
-                        "",
-                        "Score difference: "
-                        f"{comparison['score_difference']} point(s)",
-                
-                        f"Comparison strength: "
-                        f"{comparison['comparison_strength']}",
 
                         "",
-                    ]                
+
+                        "Overall stronger stock: "
+                        f"{comparison['winner']}",
+
+                        "",
+
+                        "Score difference: "
+                        f"{comparison['score_difference']} point(s)",
+
+                        "Comparison strength: "
+                        f"{comparison['comparison_strength']}",
+                    ]
+
                 # --------------------------------------------------
                 # METRIC LEADERS
                 # --------------------------------------------------
 
-                metric_leaders = comparison.get(
-                    "metric_leaders",
-                    {}
+                metric_leaders = (
+                    comparison.get(
+                        "metric_leaders",
+                        {},
+                    )
                 )
 
                 response_lines.extend(
                     [
-                        "Metric leaders:",
-                        f"- Best performance: "
-                        f"{metric_leaders.get('best_performance') or 'TIE'}",
-                
-                        f"- Lowest risk: "
-                        f"{metric_leaders.get('lowest_risk') or 'TIE'}",
-                
-                        f"- Lowest volatility: "
-                        f"{metric_leaders.get('lowest_volatility') or 'TIE'}",
-                
-                        f"- Smallest drawdown: "
-                        f"{metric_leaders.get('smallest_drawdown') or 'TIE'}",
-                
+
                         "",
+
+                        "Metric leaders:",
+
+                        "- Best performance: "
+                        f"{metric_leaders.get('best_performance') or 'TIE'}",
+
+                        "- Lowest risk: "
+                        f"{metric_leaders.get('lowest_risk') or 'TIE'}",
+
+                        "- Lowest volatility: "
+                        f"{metric_leaders.get('lowest_volatility') or 'TIE'}",
+
+                        "- Smallest drawdown: "
+                        f"{metric_leaders.get('smallest_drawdown') or 'TIE'}",
+
                     ]
                 )
 
@@ -527,6 +595,9 @@ For a complex question:
 
                     response_lines.extend(
                         [
+
+                            "",
+
                             f"{stock['symbol']}: "
                             f"{stock['score']}/100",
 
@@ -534,41 +605,40 @@ For a complex question:
 
                             "Score breakdown:",
 
-                            f"- Performance: "
+                            "- Performance: "
                             f"{breakdown['performance']}/25",
 
-                            f"- Trend: "
+                            "- Trend: "
                             f"{breakdown['trend']}/25",
 
-                            f"- Momentum: "
+                            "- Momentum: "
                             f"{breakdown['momentum']}/25",
 
-                            f"- Risk: "
+                            "- Risk: "
                             f"{breakdown['risk']}/25",
 
                             "",
 
                             "Key metrics:",
 
-                            f"- Return: "
+                            "- Return: "
                             f"{metrics['return_percentage']}%",
 
-                            f"- RSI: "
+                            "- RSI: "
                             f"{metrics['rsi_14']}",
 
-                            f"- Risk score: "
+                            "- Risk score: "
                             f"{metrics['risk_score']}",
 
-                            f"- Risk level: "
+                            "- Risk level: "
                             f"{metrics['risk_level']}",
 
-                            f"- Volatility: "
+                            "- Volatility: "
                             f"{metrics['volatility']}",
 
-                            f"- Maximum drawdown: "
+                            "- Maximum drawdown: "
                             f"{metrics['maximum_drawdown']}%",
 
-                            "",
                         ]
                     )
 
@@ -576,8 +646,13 @@ For a complex question:
                 # OBSERVATIONS
                 # --------------------------------------------------
 
-                response_lines.append(
-                    "Key observations:"
+                response_lines.extend(
+                    [
+
+                        "",
+
+                        "Key observations:",
+                    ]
                 )
 
                 for observation in comparison[
@@ -594,7 +669,9 @@ For a complex question:
 
                 response_lines.extend(
                     [
+
                         "",
+
                         "This comparison is based only "
                         "on FinPilot's current scoring "
                         "model and the available "
@@ -629,15 +706,22 @@ Use ONLY the stock data provided below.
 IMPORTANT RULES:
 
 1. Never invent market data.
+
 2. Never use outside knowledge.
+
 3. Never invent prices, returns, risk values,
    or financial metrics.
+
 4. Do not assume information that is not provided.
+
 5. Do not speculate about the reason for a price
    movement or future performance.
+
 6. If the requested information is unavailable,
    clearly state that it is not available.
+
 7. Answer the user's actual question directly.
+
 8. Do not provide unnecessary information.
 
 Stock data:
@@ -691,13 +775,18 @@ Answer the user's question clearly and accurately.
 IMPORTANT RULES:
 
 1. Do not invent financial data.
+
 2. Do not claim access to information
    that has not been provided.
+
 3. If the user asks for personal portfolio
    information, explain that portfolio data
    must be retrieved through the portfolio tool.
+
 4. Answer the user's actual question directly.
+
 5. Avoid unnecessary explanations.
+
 6. Do not provide personalized financial advice
    beyond the data and capabilities available
    to FinPilot.
