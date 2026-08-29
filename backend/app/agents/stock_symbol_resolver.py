@@ -94,3 +94,55 @@ class StockSymbolResolver:
                     symbols.append(symbol)
 
         return symbols
+
+
+    def extract_possible_symbol(
+        self,
+        message: str,
+    ) -> str | None:
+
+        message_upper = (
+            message.upper()
+            .strip()
+        )
+
+        # --------------------------------------------------
+        # Look for a phrase after common stock commands
+        # --------------------------------------------------
+
+        patterns = [
+            r"\bANALYZE\s+([A-Z][A-Z0-9&.-]*)",
+            r"\bANALYSE\s+([A-Z][A-Z0-9&.-]*)",
+            r"\bANALYSIS\s+OF\s+([A-Z][A-Z0-9&.-]*)",
+            r"\bSTOCK\s+([A-Z][A-Z0-9&.-]*)",
+            r"\bSHARE\s+([A-Z][A-Z0-9&.-]*)",
+        ]
+
+        for pattern in patterns:
+
+            match = re.search(
+                pattern,
+                message_upper,
+            )
+
+            if match:
+
+                candidate = (
+                    match.group(1)
+                    .strip()
+                )
+
+                # Ignore generic words.
+                if candidate in {
+                    "THE",
+                    "A",
+                    "AN",
+                    "STOCK",
+                    "SHARE",
+                }:
+                    continue
+
+                return candidate
+
+        return None
+    

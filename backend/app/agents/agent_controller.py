@@ -92,6 +92,28 @@ class AgentController:
                 f"{portfolio_query_type}"
             )
 
+            # --------------------------------------------------
+            # EMPTY PORTFOLIO
+            # --------------------------------------------------
+
+            if not analytics["holdings"]:
+
+                if portfolio_query_type in {
+                    PortfolioQueryType.INSIGHTS,
+                    PortfolioQueryType.DECISION_SUPPORT,
+                }:
+
+                    # These query types already have
+                    # dedicated empty-portfolio handling.
+
+                    pass
+
+                else:
+
+                    return (
+                        "No portfolio holdings were found "
+                        "for this user."
+                    )
 
             # ==================================================
             # PORTFOLIO DECISION SUPPORT
@@ -584,10 +606,26 @@ For a complex question:
 
             if not symbols:
 
+                possible_symbol = (
+                    self.stock_symbol_resolver
+                    .extract_possible_symbol(
+                        message
+                    )
+                )
+
+                if possible_symbol:
+
+                    return (
+                        f"I couldn't recognize the stock "
+                        f"symbol '{possible_symbol}'. "
+                        "Please provide a supported stock "
+                        "symbol."
+                    )
+
                 return (
                     "Please provide the stock symbol "
                     "you want me to analyze."
-                )
+                )            
 
             # ==================================================
             # STOCK RECOMMENDATION
