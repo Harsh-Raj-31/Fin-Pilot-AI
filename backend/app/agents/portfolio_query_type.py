@@ -1,6 +1,7 @@
 class PortfolioQueryType:
 
     GENERAL = "general"
+    INSIGHTS = "insights"
     RETURN = "return"
     VALUE = "value"
     PROFIT_LOSS = "profit_loss"
@@ -97,6 +98,25 @@ class PortfolioQueryType:
         "concentrated portfolio",
     }
 
+    INSIGHTS_KEYWORDS = {
+        "portfolio insights",
+        "portfolio insight",
+        "portfolio risks",
+        "portfolio risk analysis",
+        "risks in my portfolio",
+        "risk in my portfolio",
+        "problems with my portfolio",
+        "problem with my portfolio",
+        "what is wrong with my portfolio",
+        "what's wrong with my portfolio",
+        "issues with my portfolio",
+        "portfolio warnings",
+        "portfolio warning",
+        "analyze the risks in my portfolio",
+        "analyze my portfolio risks",
+        "what should i know about my portfolio",
+    }    
+
     @classmethod
     def detect(
         cls,
@@ -187,6 +207,15 @@ class PortfolioQueryType:
             if keyword in normalized:
 
                 return cls.DIVERSIFICATION
+            
+        # --------------------------------------------------
+        # INSIGHTS
+        # --------------------------------------------------
+        for keyword in cls.INSIGHTS_KEYWORDS:
+
+            if keyword in normalized:
+
+                return cls.INSIGHTS            
 
         # --------------------------------------------------
         # GENERAL

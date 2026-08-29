@@ -1,5 +1,8 @@
 from app.agents.intent_agent import IntentAgent
 from app.agents.portfolio_tool import PortfolioTool
+from app.agents.portfolio_insight_engine import (
+    PortfolioInsightEngine,
+)
 from app.agents.stock_tool import StockTool
 from app.agents.stock_symbol_resolver import StockSymbolResolver
 from app.agents.query_complexity import QueryComplexity
@@ -16,6 +19,10 @@ class AgentController:
         self.intent_agent = IntentAgent()
 
         self.portfolio_tool = PortfolioTool()
+
+        self.portfolio_insight_engine = (
+            PortfolioInsightEngine()
+        )
 
         self.stock_tool = StockTool()
 
@@ -81,10 +88,101 @@ class AgentController:
             )
 
             # ==================================================
-            # RETURN
+            # PORTFOLIO INSIGHTS
             # ==================================================
 
             if (
+                portfolio_query_type
+                == PortfolioQueryType.INSIGHTS
+            ):
+
+                insight_data = (
+                    PortfolioInsightEngine.generate(
+                        analytics
+                    )
+                )
+
+                response_lines = [
+                    "FinPilot Portfolio Insights",
+                    "",
+                ]
+
+                # --------------------------------------------------
+                # WARNINGS
+                # --------------------------------------------------
+
+                response_lines.append(
+                    "Portfolio warnings:"
+                )
+
+                if insight_data["warnings"]:
+
+                    for warning in (
+                        insight_data["warnings"]
+                    ):
+
+                        response_lines.append(
+                            f"- {warning}"
+                        )
+
+                else:
+
+                    response_lines.append(
+                        "- No major portfolio "
+                        "warnings detected."
+                    )
+
+                # --------------------------------------------------
+                # INSIGHTS
+                # --------------------------------------------------
+
+                response_lines.extend(
+                    [
+                        "",
+                        "Portfolio insights:",
+                    ]
+                )
+
+                if insight_data["insights"]:
+
+                    for insight in (
+                        insight_data["insights"]
+                    ):
+
+                        response_lines.append(
+                            f"- {insight}"
+                        )
+
+                else:
+
+                    response_lines.append(
+                        "- No additional insights "
+                        "available."
+                    )
+
+                # --------------------------------------------------
+                # DISCLAIMER
+                # --------------------------------------------------
+
+                response_lines.extend(
+                    [
+                        "",
+                        "These insights are based only "
+                        "on your portfolio data and "
+                        "FinPilot's current analytics "
+                        "model.",
+                    ]
+                )
+
+                return "\n".join(
+                    response_lines
+                )
+
+            # ==================================================
+            # RETURN
+            # ==================================================
+
+            elif (
                 portfolio_query_type
                 == PortfolioQueryType.RETURN
             ):
