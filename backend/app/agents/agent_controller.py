@@ -3,6 +3,9 @@ from app.agents.portfolio_tool import PortfolioTool
 from app.agents.portfolio_insight_engine import (
     PortfolioInsightEngine,
 )
+from app.agents.portfolio_decision_engine import (
+    PortfolioDecisionEngine,
+)
 from app.agents.stock_tool import StockTool
 from app.agents.stock_symbol_resolver import StockSymbolResolver
 from app.agents.query_complexity import QueryComplexity
@@ -10,6 +13,8 @@ from app.agents.portfolio_query_type import PortfolioQueryType
 from app.agents.recommendation_engine import RecommendationEngine
 from app.agents.stock_comparison_engine import StockComparisonEngine
 from app.services.ai_service import AIService
+
+
 
 
 class AgentController:
@@ -86,6 +91,83 @@ class AgentController:
                 "[AI] Portfolio query type: "
                 f"{portfolio_query_type}"
             )
+
+
+            # ==================================================
+            # PORTFOLIO DECISION SUPPORT
+            # ==================================================
+
+            if (
+                portfolio_query_type
+                == PortfolioQueryType.DECISION_SUPPORT
+            ):
+
+                decision = (
+                    PortfolioDecisionEngine.analyze(
+                        analytics
+                    )
+                )
+
+                response_lines = [
+                    "FinPilot Portfolio Decision Support",
+                    "",
+                    "Overall assessment:",
+                    decision["overall_assessment"],
+                    "",
+                    "Areas needing attention:",
+                ]
+
+                if decision["attention_areas"]:
+
+                    for area in (
+                        decision["attention_areas"]
+                    ):
+
+                        response_lines.append(
+                            f"- {area}"
+                        )
+
+                else:
+
+                    response_lines.append(
+                        "- No major attention areas detected."
+                    )
+
+                response_lines.extend(
+                    [
+                        "",
+                        "Positive areas:",
+                    ]
+                )
+
+                if decision["positive_areas"]:
+
+                    for area in (
+                        decision["positive_areas"]
+                    ):
+
+                        response_lines.append(
+                            f"- {area}"
+                        )
+
+                else:
+
+                    response_lines.append(
+                        "- No additional positive areas identified."
+                    )
+
+                response_lines.extend(
+                    [
+                        "",
+                        "This assessment is based only on "
+                        "your portfolio data and FinPilot's "
+                        "current analytics model.",
+                    ]
+                )
+
+                return "\n".join(
+                    response_lines
+                )
 
             # ==================================================
             # PORTFOLIO INSIGHTS

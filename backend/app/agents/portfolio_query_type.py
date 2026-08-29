@@ -10,6 +10,7 @@ class PortfolioQueryType:
     HIGHEST_RISK = "highest_risk"
     LARGEST_HOLDING = "largest_holding"
     DIVERSIFICATION = "diversification"
+    DECISION_SUPPORT = "decision_support"
 
     RETURN_KEYWORDS = {
         "portfolio return",
@@ -115,7 +116,25 @@ class PortfolioQueryType:
         "analyze the risks in my portfolio",
         "analyze my portfolio risks",
         "what should i know about my portfolio",
-    }    
+    } 
+    DECISION_SUPPORT_KEYWORDS = {
+       "what needs attention",
+       "what needs attention in my portfolio",
+       "what should i know about my portfolio",
+       "what should i be concerned about",
+       "what should i be concerned about in my portfolio",
+       "portfolio decision",
+       "portfolio decision support",
+       "portfolio assessment",
+       "assess my portfolio",
+       "evaluate my portfolio",
+       "evaluate my portfolio risk",
+       "what are the problem areas",
+       "what are the problem areas in my portfolio",
+       "areas of concern",
+       "areas of concern in my portfolio",
+       "portfolio concerns",
+    }   
 
     @classmethod
     def detect(
@@ -207,6 +226,17 @@ class PortfolioQueryType:
             if keyword in normalized:
 
                 return cls.DIVERSIFICATION
+
+
+        # --------------------------------------------------
+        # DECISION SUPPORT
+        # --------------------------------------------------
+
+        for keyword in cls.DECISION_SUPPORT_KEYWORDS:
+
+            if keyword in normalized:
+
+                return cls.DECISION_SUPPORT    
             
         # --------------------------------------------------
         # INSIGHTS
