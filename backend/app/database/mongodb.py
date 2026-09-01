@@ -20,3 +20,22 @@ database["users"].create_index(
 database["portfolios"].create_index(
     [("user_id", ASCENDING)],
 )
+database["paper_accounts"].create_index(
+    [("user_id", ASCENDING)],
+    unique=True,
+)
+
+database["paper_positions"].create_index(
+    [
+        ("user_id", ASCENDING),
+        ("symbol", ASCENDING),
+    ],
+    unique=True,
+)
+
+database["paper_trades"].create_index(
+    [
+        ("user_id", ASCENDING),
+        ("created_at", -1),
+    ],
+)

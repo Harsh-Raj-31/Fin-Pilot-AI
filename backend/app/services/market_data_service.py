@@ -134,16 +134,58 @@ class MarketDataService:
     ) -> list[dict]:
 
         try:
+            symbol = symbol.strip().upper()
+
             ticker = yf.Ticker(f"{symbol}.NS")
 
-            data = ticker.history(period=period)
+            # -------------------------------------------------
+            # First attempt: requested period
+            # -------------------------------------------------
+            data = ticker.history(
+                period=period,
+                interval="1d",
+                auto_adjust=False,
+            )
 
+            # -------------------------------------------------
+            # Fallback: Yahoo Finance can occasionally return
+            # empty data for shorter periods.
+            # Try a longer period and use the required portion.
+            # -------------------------------------------------
+            if data.empty and period in {"3mo", "1mo", "6mo"}:
+
+                data = ticker.history(
+                    period="1y",
+                    interval="1d",
+                    auto_adjust=False,
+                )
+
+                if not data.empty:
+
+                    months = {
+                        "1mo": 1,
+                        "3mo": 3,
+                        "6mo": 6,
+                    }
+
+                    months_back = months.get(period, 3)
+
+                    cutoff_date = (
+                        pd.Timestamp.now(tz=data.index.tz)
+                        - pd.DateOffset(months=months_back)
+                    )
+
+                    data = data[data.index >= cutoff_date]
+
+            # -------------------------------------------------
+            # Validate historical data
+            # -------------------------------------------------
             if data.empty:
                 raise ValueError(
                     f"No historical market data found for {symbol}"
                 )
 
-            # Remove rows containing missing OHLC values
+            # Remove rows with missing OHLC values
             data = data.dropna(
                 subset=["Open", "High", "Low", "Close"]
             )
@@ -153,20 +195,38 @@ class MarketDataService:
                     f"No valid historical market data found for {symbol}"
                 )
 
+            # -------------------------------------------------
+            # Convert dataframe into API response format
+            # -------------------------------------------------
             history = []
 
             for date, row in data.iterrows():
 
-                history.append({
-                    "date": date.strftime("%Y-%m-%d"),
-                    "open": round(float(row["Open"]), 2),
-                    "high": round(float(row["High"]), 2),
-                    "low": round(float(row["Low"]), 2),
-                    "close": round(float(row["Close"]), 2),
-                    "volume": int(row["Volume"]),
-                })
+                volume = row.get("Volume", 0)
+
+                if pd.isna(volume):
+                    volume = 0
+
+                history.append(
+                    {
+                        "date": date.strftime("%Y-%m-%d"),
+                        "open": round(float(row["Open"]), 2),
+                        "high": round(float(row["High"]), 2),
+                        "low": round(float(row["Low"]), 2),
+                        "close": round(float(row["Close"]), 2),
+                        "volume": int(volume),
+                    }
+                )
 
             return history
+
+        except Exception as e:
+
+            raise RuntimeError(
+                f"Failed to fetch historical market data "
+                f"for {symbol}: {e}"
+            ) from e
+
 
         except Exception as e:
             raise RuntimeError(

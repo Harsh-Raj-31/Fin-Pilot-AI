@@ -33,6 +33,8 @@ app.add_middleware(
     allow_origins=[
         settings.FRONTEND_URL,
         "http://127.0.0.1:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -54,3 +56,4 @@ app.include_router(
 # cd C:\Projects\Fin-Pilot-AI\backend
 # .venv\Scripts\activate
 # python -m uvicorn app.main:app --reload 
+
