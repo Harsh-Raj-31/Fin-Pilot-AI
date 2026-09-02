@@ -1,4 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+
+import {
+  buyStock,
+  sellStock,
+  getPaperAccount,
+  getPaperPositions,
+  getPaperTrades,
+} from '../services/api'
+
+import { getToken } from '../services/auth'
 
 /* =========================================================
    PAPER TRADING DATA
@@ -539,17 +549,319 @@ function PaperTrading() {
   const [selectedPeriod, setSelectedPeriod] =
     useState('1M')
 
-  const [positions] =
+  const [positions, setPositions] =
     useState(INITIAL_POSITIONS)
 
   const [signals] =
     useState(RECENT_SIGNALS)
 
-  const [trades] =
+  const [trades, setTrades] =
     useState(RECENT_TRADES)
+
+  const [cashBalance, setCashBalance] =
+    useState(100000)
 
   const [marketMode, setMarketMode] =
     useState('Live Market')
+
+  /* =======================================================
+     ORDER STATE
+     ======================================================= */
+
+  const [order, setOrder] =
+    useState(null)
+
+  const [orderSide, setOrderSide] =
+    useState('BUY')
+
+  const [quantity, setQuantity] =
+    useState('')
+
+  const [orderError, setOrderError] =
+    useState('')
+
+  const [orderSuccess, setOrderSuccess] =
+    useState('')
+
+  const [isSubmitting, setIsSubmitting] =
+    useState(false)
+
+  /* =======================================================
+     LOAD PAPER TRADING DATA
+     ======================================================= */
+
+  const loadPaperTradingData = async () => {
+    const token = getToken()
+
+    if (!token) {
+      return
+    }
+
+    try {
+      const [
+        accountData,
+        positionsData,
+        tradesData,
+      ] = await Promise.all([
+        getPaperAccount(token),
+        getPaperPositions(token),
+        getPaperTrades(token),
+      ])
+
+      setCashBalance(
+        Number(accountData.cash_balance ?? 0)
+      )
+
+      setPositions(
+        Array.isArray(positionsData)
+          ? positionsData.map((position) => ({
+              symbol: position.symbol,
+              quantity: Number(position.quantity ?? 0),
+              averagePrice: Number(
+                position.average_price ??
+                  position.averagePrice ??
+                  0
+              ),
+              currentPrice: Number(
+                position.current_price ??
+                  position.currentPrice ??
+                  0
+              ),
+              pnl: Number(
+                position.pnl ??
+                  position.profit_loss ??
+                  0
+              ),
+              pnlPercentage: Number(
+                position.pnl_percentage ??
+                  position.pnlPercentage ??
+                  0
+              ),
+            }))
+          : []
+      )
+
+      setTrades(
+        Array.isArray(tradesData)
+          ? tradesData.map((trade) => ({
+              date: trade.created_at
+                ? new Date(
+                    trade.created_at
+                  ).toLocaleString('en-IN')
+                : 'N/A',
+              symbol: trade.symbol,
+              type: trade.side,
+              quantity: Number(
+                trade.quantity ?? 0
+              ),
+              price: Number(
+                trade.price ?? 0
+              ),
+              amount: Number(
+                trade.total_value ??
+                  trade.amount ??
+                  0
+              ),
+              status: 'Executed',
+            }))
+          : []
+      )
+    } catch (error) {
+      console.error(
+        'Failed to load paper trading data:',
+        error
+      )
+    }
+  }
+
+  useEffect(() => {
+    loadPaperTradingData()
+  }, [])
+
+  /* =======================================================
+     OPEN BUY ORDER
+     ======================================================= */
+
+  const openBuyOrder = (stock) => {
+    setOrder({
+      symbol: stock.symbol,
+      price: Number(stock.price || 0),
+    })
+
+    setOrderSide('BUY')
+    setQuantity('')
+    setOrderError('')
+    setOrderSuccess('')
+  }
+
+  /* =======================================================
+     OPEN SELL ORDER
+     ======================================================= */
+
+  const openSellOrder = (position) => {
+    setOrder({
+      symbol: position.symbol,
+      price: Number(
+        position.currentPrice || 0
+      ),
+      maxQuantity: Number(
+        position.quantity || 0
+      ),
+    })
+
+    setOrderSide('SELL')
+    setQuantity('')
+    setOrderError('')
+    setOrderSuccess('')
+  }
+
+  /* =======================================================
+     ORDER VALUE
+     ======================================================= */
+
+  const orderValue = useMemo(() => {
+    if (!order) {
+      return 0
+    }
+
+    const parsedQuantity = Number(quantity)
+
+    if (!Number.isFinite(parsedQuantity)) {
+      return 0
+    }
+
+    return (
+      parsedQuantity *
+      Number(order.price || 0)
+    )
+  }, [order, quantity])
+
+  /* =======================================================
+     SUBMIT ORDER
+     ======================================================= */
+
+  const handleOrderSubmit = async () => {
+    setOrderError('')
+    setOrderSuccess('')
+
+    const parsedQuantity = Number(quantity)
+    const parsedPrice = Number(
+      order?.price || 0
+    )
+
+    if (!order) {
+      return
+    }
+
+    if (
+      !Number.isInteger(parsedQuantity) ||
+      parsedQuantity <= 0
+    ) {
+      setOrderError(
+        'Quantity must be a positive whole number.'
+      )
+      return
+    }
+
+    if (
+      !Number.isFinite(parsedPrice) ||
+      parsedPrice <= 0
+    ) {
+      setOrderError(
+        'Current price is unavailable.'
+      )
+      return
+    }
+
+    if (
+      orderSide === 'SELL' &&
+      parsedQuantity >
+        Number(order.maxQuantity || 0)
+    ) {
+      setOrderError(
+        `You can sell a maximum of ${order.maxQuantity} shares.`
+      )
+      return
+    }
+
+    const calculatedOrderValue =
+      parsedQuantity * parsedPrice
+
+    if (
+      orderSide === 'BUY' &&
+      calculatedOrderValue > cashBalance
+    ) {
+      setOrderError(
+        'Insufficient virtual balance for this order.'
+      )
+      return
+    }
+
+    const token = getToken()
+
+    if (!token) {
+      setOrderError(
+        'Your session has expired. Please log in again.'
+      )
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      if (orderSide === 'BUY') {
+        await buyStock(
+          order.symbol,
+          parsedQuantity,
+          token
+        )
+
+        setOrderSuccess(
+          `${order.symbol} BUY order executed successfully.`
+        )
+      } else {
+        await sellStock(
+          order.symbol,
+          parsedQuantity,
+          token
+        )
+
+        setOrderSuccess(
+          `${order.symbol} SELL order executed successfully.`
+        )
+      }
+
+      await loadPaperTradingData()
+
+      setQuantity('')
+    } catch (error) {
+      setOrderError(
+        error.message ||
+          'Unable to execute the order.'
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  /* =======================================================
+     CLOSE ORDER MODAL
+     ======================================================= */
+
+  const closeOrderModal = () => {
+    if (isSubmitting) {
+      return
+    }
+
+    setOrder(null)
+    setQuantity('')
+    setOrderError('')
+    setOrderSuccess('')
+  }
+
+  /* =======================================================
+     PORTFOLIO CALCULATIONS
+     ======================================================= */
 
   const totalInvested = useMemo(
     () =>
@@ -623,7 +935,9 @@ function PaperTrading() {
             <div className="pt-stat-icon">▣</div>
           </div>
 
-          <strong>₹1,00,000.00</strong>
+          <strong>
+            {formatCurrency(cashBalance)}
+          </strong>
 
           <small>
             Available to invest
@@ -637,7 +951,9 @@ function PaperTrading() {
           </div>
 
           <strong>
-            {formatCurrency(totalPortfolioValue)}
+            {formatCurrency(
+              totalPortfolioValue
+            )}
           </strong>
 
           <small>
@@ -648,7 +964,9 @@ function PaperTrading() {
           </small>
 
           <div className="pt-stat-pnl">
-            P&amp;L: +₹2,435.25 (+3.07%)
+            P&amp;L:{' '}
+            {totalPnL >= 0 ? '+' : ''}
+            {formatCurrency(totalPnL)}
           </div>
         </div>
 
@@ -765,7 +1083,9 @@ function PaperTrading() {
                     </td>
 
                     <td>
-                      {formatCurrency(signal.price)}
+                      {formatCurrency(
+                        signal.price
+                      )}
                     </td>
 
                     <td>
@@ -791,9 +1111,7 @@ function PaperTrading() {
                         type="button"
                         className="pt-trade-button"
                         onClick={() =>
-                          console.log(
-                            `Trade ${signal.symbol}`
-                          )
+                          openBuyOrder(signal)
                         }
                       >
                         Trade
@@ -818,7 +1136,8 @@ function PaperTrading() {
           <AllocationChart />
 
           <p className="pt-allocation-footer">
-            Holdings spread across 5 stocks
+            Holdings spread across{' '}
+            {positions.length} stocks
           </p>
 
         </div>
@@ -921,9 +1240,7 @@ function PaperTrading() {
                         type="button"
                         className="pt-exit-button"
                         onClick={() =>
-                          console.log(
-                            `Exit ${position.symbol}`
-                          )
+                          openSellOrder(position)
                         }
                       >
                         Exit
@@ -1153,6 +1470,234 @@ function PaperTrading() {
         </span>
 
       </div>
+
+      {/* =====================================================
+          ORDER MODAL
+      ===================================================== */}
+
+      {order && (
+        <div className="pt-order-overlay">
+
+          <div
+            className="pt-order-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="order-modal-title"
+          >
+
+            {/* ORDER HEADER */}
+
+            <div className="pt-order-header">
+
+              <div>
+                <span className="pt-order-label">
+                  Paper Trading
+                </span>
+
+                <h3 id="order-modal-title">
+                  Place Order
+                </h3>
+              </div>
+
+              <button
+                type="button"
+                className="pt-order-close"
+                onClick={closeOrderModal}
+                disabled={isSubmitting}
+                aria-label="Close order modal"
+              >
+                ×
+              </button>
+
+            </div>
+
+            {/* STOCK INFORMATION */}
+
+            <div className="pt-order-stock">
+
+              <strong>
+                {order.symbol}
+              </strong>
+
+              <span>
+                Current Price:{' '}
+                {formatCurrency(order.price)}
+              </span>
+
+            </div>
+
+            {/* BUY / SELL */}
+
+            <div className="pt-order-side">
+
+              <button
+                type="button"
+                className={
+                  orderSide === 'BUY'
+                    ? 'active'
+                    : ''
+                }
+                onClick={() => {
+                  setOrderSide('BUY')
+                  setOrderError('')
+                  setOrderSuccess('')
+                }}
+                disabled={isSubmitting}
+              >
+                BUY
+              </button>
+
+              <button
+                type="button"
+                className={
+                  orderSide === 'SELL'
+                    ? 'active sell-active'
+                    : ''
+                }
+                onClick={() => {
+                  setOrderSide('SELL')
+                  setOrderError('')
+                  setOrderSuccess('')
+                }}
+                disabled={isSubmitting}
+              >
+                SELL
+              </button>
+
+            </div>
+
+            {/* QUANTITY */}
+
+            <div className="pt-order-field">
+
+              <label htmlFor="order-quantity">
+                Quantity
+              </label>
+
+              <input
+                id="order-quantity"
+                type="number"
+                min="1"
+                step="1"
+                value={quantity}
+                onChange={(event) =>
+                  setQuantity(
+                    event.target.value
+                  )
+                }
+                placeholder="Enter quantity"
+                disabled={isSubmitting}
+              />
+
+              {orderSide === 'SELL' && (
+                <small>
+                  Available quantity:{' '}
+                  {order.maxQuantity}
+                </small>
+              )}
+
+            </div>
+
+            {/* PRICE */}
+
+            <div className="pt-order-field">
+
+              <label htmlFor="order-price">
+                Price
+              </label>
+
+              <input
+                id="order-price"
+                type="number"
+                value={order.price}
+                readOnly
+              />
+
+              <small>
+                Execution price is determined by
+                the backend using current market data.
+              </small>
+
+            </div>
+
+            {/* ORDER VALUE */}
+
+            <div className="pt-order-summary">
+
+              <span>
+                Order Value
+              </span>
+
+              <strong>
+                {formatCurrency(orderValue)}
+              </strong>
+
+            </div>
+
+            {/* AVAILABLE BALANCE */}
+
+            {orderSide === 'BUY' && (
+              <div className="pt-order-balance">
+
+                Available Balance:{' '}
+
+                <strong>
+                  {formatCurrency(cashBalance)}
+                </strong>
+
+              </div>
+            )}
+
+            {/* ERROR */}
+
+            {orderError && (
+              <div className="pt-order-error">
+                {orderError}
+              </div>
+            )}
+
+            {/* SUCCESS */}
+
+            {orderSuccess && (
+              <div className="pt-order-success">
+                {orderSuccess}
+              </div>
+            )}
+
+            {/* ACTION BUTTONS */}
+
+            <div className="pt-order-actions">
+
+              <button
+                type="button"
+                className="pt-order-cancel"
+                onClick={closeOrderModal}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className={
+                  orderSide === 'BUY'
+                    ? 'pt-order-confirm buy'
+                    : 'pt-order-confirm sell'
+                }
+                onClick={handleOrderSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting
+                  ? 'Processing...'
+                  : `Confirm ${orderSide}`}
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
 
     </div>
   )
