@@ -5,6 +5,7 @@ import {
   sellStock,
   getPaperAccount,
   getPaperPositions,
+  getPaperPortfolio,
   getPaperTrades,
 } from '../services/api'
 
@@ -130,15 +131,6 @@ const RECENT_TRADES = [
   },
 ]
 
-const ALLOCATION_DATA = [
-  { symbol: 'HDFCBANK', percentage: 21.8 },
-  { symbol: 'TCS', percentage: 32.6 },
-  { symbol: 'RELIANCE', percentage: 18.7 },
-  { symbol: 'INFY', percentage: 15.2 },
-  { symbol: 'SBIN', percentage: 11.7 },
-  { symbol: 'Cash', percentage: 4.7 },
-]
-
 const ALLOCATION_COLORS = [
   '#3b82f6',
   '#22c55e',
@@ -178,7 +170,9 @@ function formatPercentage(value) {
 
 function SignalBadge({ signal }) {
   return (
-    <span className={`pt-signal pt-signal-${signal.toLowerCase()}`}>
+    <span
+      className={`pt-signal pt-signal-${signal.toLowerCase()}`}
+    >
       {signal}
     </span>
   )
@@ -190,7 +184,8 @@ function SignalBadge({ signal }) {
 
 function PerformanceChart({ selectedPeriod }) {
   const points =
-    PERFORMANCE_POINTS[selectedPeriod] || PERFORMANCE_POINTS['1M']
+    PERFORMANCE_POINTS[selectedPeriod] ||
+    PERFORMANCE_POINTS['1M']
 
   const width = 720
   const height = 280
@@ -354,15 +349,13 @@ function PerformanceChart({ selectedPeriod }) {
    PORTFOLIO ALLOCATION
    ========================================================= */
 
-function AllocationChart() {
+function AllocationChart({
+  allocation,
+  totalValue,
+}) {
   const radius = 74
   const center = 100
   const circumference = 2 * Math.PI * radius
-
-  const allocationTotal = ALLOCATION_DATA.reduce(
-    (sum, item) => sum + item.percentage,
-    0
-  )
 
   let accumulated = 0
 
@@ -384,9 +377,9 @@ function AllocationChart() {
             strokeWidth="24"
           />
 
-          {ALLOCATION_DATA.map((item, index) => {
+          {allocation.map((item, index) => {
             const normalizedPercentage =
-              (item.percentage / allocationTotal) * 100
+              Number(item.percentage || 0)
 
             const dashLength =
               (normalizedPercentage / 100) *
@@ -405,7 +398,11 @@ function AllocationChart() {
                 cy={center}
                 r={radius}
                 fill="none"
-                stroke={ALLOCATION_COLORS[index]}
+                stroke={
+                  ALLOCATION_COLORS[
+                    index % ALLOCATION_COLORS.length
+                  ]
+                }
                 strokeWidth="24"
                 strokeDasharray={`${dashLength} ${
                   circumference - dashLength
@@ -420,12 +417,15 @@ function AllocationChart() {
 
         <div className="pt-allocation-center">
           <span>Total</span>
-          <strong>₹81,768.05</strong>
+
+          <strong>
+            {formatCurrency(totalValue)}
+          </strong>
         </div>
       </div>
 
       <div className="pt-allocation-legend">
-        {ALLOCATION_DATA.map((item, index) => (
+        {allocation.map((item, index) => (
           <div
             className="pt-allocation-item"
             key={item.symbol}
@@ -433,13 +433,18 @@ function AllocationChart() {
             <span
               className="pt-allocation-dot"
               style={{
-                backgroundColor: ALLOCATION_COLORS[index],
+                backgroundColor:
+                  ALLOCATION_COLORS[
+                    index % ALLOCATION_COLORS.length
+                  ],
               }}
             />
 
             <span>{item.symbol}</span>
 
-            <strong>{item.percentage}%</strong>
+            <strong>
+              {Number(item.percentage || 0).toFixed(2)}%
+            </strong>
           </div>
         ))}
       </div>
@@ -454,16 +459,19 @@ function AllocationChart() {
 function TradeHistoryChart() {
   const winningTrades = 19
   const losingTrades = 9
-  const totalTrades = winningTrades + losingTrades
+  const totalTrades =
+    winningTrades + losingTrades
 
   const radius = 58
   const circumference = 2 * Math.PI * radius
 
   const winningLength =
-    (winningTrades / totalTrades) * circumference
+    (winningTrades / totalTrades) *
+    circumference
 
   const losingLength =
-    (losingTrades / totalTrades) * circumference
+    (losingTrades / totalTrades) *
+    circumference
 
   return (
     <div className="pt-history-content">
@@ -561,6 +569,9 @@ function PaperTrading() {
   const [cashBalance, setCashBalance] =
     useState(100000)
 
+  const [portfolio, setPortfolio] =
+    useState(null)
+
   const [marketMode, setMarketMode] =
     useState('Live Market')
 
@@ -601,10 +612,12 @@ function PaperTrading() {
       const [
         accountData,
         positionsData,
+        portfolioData,
         tradesData,
       ] = await Promise.all([
         getPaperAccount(token),
         getPaperPositions(token),
+        getPaperPortfolio(token),
         getPaperTrades(token),
       ])
 
@@ -612,11 +625,15 @@ function PaperTrading() {
         Number(accountData.cash_balance ?? 0)
       )
 
+      setPortfolio(portfolioData)
+
       setPositions(
         Array.isArray(positionsData)
           ? positionsData.map((position) => ({
               symbol: position.symbol,
-              quantity: Number(position.quantity ?? 0),
+              quantity: Number(
+                position.quantity ?? 0
+              ),
               averagePrice: Number(
                 position.average_price ??
                   position.averagePrice ??
@@ -890,6 +907,19 @@ function PaperTrading() {
   const totalPnL =
     totalPortfolioValue - totalInvested
 
+  /* =======================================================
+     REAL PORTFOLIO ALLOCATION
+     ======================================================= */
+
+  const portfolioAllocation =
+    Array.isArray(portfolio?.allocation)
+      ? portfolio.allocation
+      : []
+
+  const portfolioTotalValue =
+    Number(portfolio?.cash_balance || 0) +
+    Number(portfolio?.current_value || 0)
+
   return (
     <div className="page paper-trading-page pt-page">
 
@@ -1133,7 +1163,10 @@ function PaperTrading() {
             <h3>Portfolio Allocation</h3>
           </div>
 
-          <AllocationChart />
+          <AllocationChart
+            allocation={portfolioAllocation}
+            totalValue={portfolioTotalValue}
+          />
 
           <p className="pt-allocation-footer">
             Holdings spread across{' '}

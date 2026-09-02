@@ -36,7 +36,15 @@ class PaperTradeResponse(BaseModel):
     quantity: float
     price: float
     total_value: float
+    realized_profit_loss: float = 0
     created_at: datetime
+
+
+class PaperAllocationResponse(BaseModel):
+
+    symbol: str
+    value: float
+    percentage: float
 
 
 class PaperPortfolioResponse(BaseModel):
@@ -46,3 +54,4 @@ class PaperPortfolioResponse(BaseModel):
     total_profit_loss: float
     total_return_percentage: float
     positions: list[PaperPositionResponse]
+    allocation: list[PaperAllocationResponse]
