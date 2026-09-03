@@ -7,6 +7,7 @@ import {
   getPaperPositions,
   getPaperPortfolio,
   getPaperTrades,
+  getMarketStatus,
 } from '../services/api'
 
 import { getToken } from '../services/auth'
@@ -572,8 +573,14 @@ function PaperTrading() {
   const [portfolio, setPortfolio] =
     useState(null)
 
-  const [marketMode, setMarketMode] =
-    useState('Live Market')
+  const [isRefreshing, setIsRefreshing] =
+    useState(false)
+
+  const [lastUpdated, setLastUpdated] =
+    useState(null)
+
+  const [marketStatus, setMarketStatus] =
+    useState(null)
 
   /* =======================================================
      ORDER STATE
@@ -614,11 +621,13 @@ function PaperTrading() {
         positionsData,
         portfolioData,
         tradesData,
+        marketStatusData,
       ] = await Promise.all([
         getPaperAccount(token),
         getPaperPositions(token),
         getPaperPortfolio(token),
         getPaperTrades(token),
+        getMarketStatus(token),
       ])
 
       setCashBalance(
@@ -626,6 +635,13 @@ function PaperTrading() {
       )
 
       setPortfolio(portfolioData)
+
+      setMarketStatus(marketStatusData)
+
+      setLastUpdated(
+        marketStatusData?.last_updated ||
+          new Date().toISOString()
+      )
 
       setPositions(
         Array.isArray(positionsData)
@@ -688,6 +704,16 @@ function PaperTrading() {
         'Failed to load paper trading data:',
         error
       )
+    }
+  }
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+
+    try {
+      await loadPaperTradingData()
+    } finally {
+      setIsRefreshing(false)
     }
   }
 
@@ -935,21 +961,42 @@ function PaperTrading() {
             Trade with virtual money. Track performance
             of AI-powered recommendations.
           </p>
+
+          {lastUpdated && (
+            <small>
+              Last updated:{' '}
+              {new Date(lastUpdated).toLocaleTimeString(
+                'en-IN'
+              )}
+            </small>
+          )}
         </div>
 
         <div className="pt-market-selector">
-          <span className="pt-status-dot" />
+          <span
+            className="pt-status-dot"
+            style={{
+              backgroundColor:
+                marketStatus?.status === 'OPEN'
+                  ? '#22c55e'
+                  : '#ef4444',
+            }}
+          />
 
-          <select
-            value={marketMode}
-            onChange={(event) =>
-              setMarketMode(event.target.value)
-            }
-            aria-label="Market mode"
+          <span>
+            {marketStatus?.status === 'OPEN'
+              ? 'Market Open'
+              : 'Market Closed'}
+          </span>
+
+          <button
+            type="button"
+            className="pt-view-button"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
           >
-            <option>Live Market</option>
-            <option>Market Simulation</option>
-          </select>
+            {isRefreshing ? 'Refreshing...' : '↻ Refresh'}
+          </button>
         </div>
       </header>
 

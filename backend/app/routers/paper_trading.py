@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, status
 
 from app.core.dependencies import get_current_user
+
 from app.schemas.paper_trading import (
     PaperAccountResponse,
     PaperPortfolioResponse,
@@ -8,6 +9,9 @@ from app.schemas.paper_trading import (
     PaperTradeRequest,
     PaperTradeResponse,
 )
+
+from app.services.market_data_service import MarketDataService
+
 from app.services.paper_trading_service import (
     paper_trading_service,
 )
@@ -17,6 +21,7 @@ router = APIRouter(
     prefix="/paper-trading",
     tags=["Paper Trading"],
 )
+market_data_service = MarketDataService()
 
 
 @router.get(
@@ -143,3 +148,14 @@ def get_trades(
     return paper_trading_service.get_trades(
         current_user["id"]
     )
+
+@router.get(
+    "/market-status",
+)
+def get_market_status(
+    current_user: dict = Depends(
+        get_current_user
+    ),
+):
+
+    return market_data_service.get_market_status()

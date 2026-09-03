@@ -203,6 +203,36 @@ export async function getPaperPortfolio(token) {
   return response.json();
 }
 
+export async function getMarketStatus(token) {
+  const response = await fetch(
+    `${API_BASE_URL}/paper-trading/market-status`,
+    {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    let errorMessage = "Unable to retrieve market status.";
+
+    try {
+      const errorData = await response.json();
+
+      if (typeof errorData.detail === "string") {
+        errorMessage = errorData.detail;
+      }
+    } catch {
+      // Keep default error message.
+    }
+
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+}
+
 
 export async function getPaperTrades(token) {
   const response = await fetch(

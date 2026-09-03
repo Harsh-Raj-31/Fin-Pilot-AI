@@ -1,3 +1,5 @@
+from datetime import datetime, time
+
 import pandas as pd
 import yfinance as yf
 
@@ -40,8 +42,38 @@ class MarketDataService:
             raise RuntimeError(
                 f"Failed to fetch market data for {symbol}: {e}"
             ) from e
+        
 
-    
+    def get_market_status(self) -> dict:
+        """
+        Return the current NSE market status
+        and the time when the status was checked.
+        """
+
+        now = datetime.now()
+
+        # Monday = 0
+        # Sunday = 6
+        weekday = now.weekday()
+
+        market_open = time(9, 15)
+        market_close = time(15, 30)
+
+        is_weekday = weekday < 5
+        is_trading_hours = (
+            market_open <= now.time() <= market_close
+        )
+
+        status = (
+            "OPEN"
+            if is_weekday and is_trading_hours
+            else "CLOSED"
+        )
+
+        return {
+            "status": status,
+            "last_updated": now.isoformat(),
+        }    
 
     def get_stock_market_data(self, symbol: str) -> dict:
 
