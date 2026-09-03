@@ -10,6 +10,7 @@ from app.core.exceptions import (
 )
 from app.core.logger import logger
 from app.services.market_data_service import MarketDataService
+from app.services.signal_engine import signal_engine
 
 class StockService:
 
@@ -366,85 +367,63 @@ class StockService:
             "winner": winner,
         }  
 
-
     def get_stock_score(
         self,
         symbol: str,
         period: str = "3mo",
     ) -> dict:
 
-        symbol = symbol.strip().upper()
-
-        stock = self._get_or_discover_stock(
-            symbol
-        )
-        
-        performance = (
-            self.market_data_service.get_stock_performance(
-                symbol,
-                period,
-            )
+        performance = self.market_data_service.get_stock_performance(
+            symbol,
+            period,
         )
 
-        indicators = (
-            self.market_data_service.get_stock_indicators(
-                symbol,
-                period,
-            )
+        indicators = self.market_data_service.get_stock_indicators(
+            symbol,
+            period,
         )
 
-        risk = (
-            self.market_data_service.get_stock_risk(
-                symbol,
-                period,
-            )
+        risk = self.market_data_service.get_stock_risk(
+            symbol,
+            period,
         )
 
-        # Calculate individual scores
-
-        performance_score = (
-            self._calculate_performance_score(
-                performance["return_percentage"]
-            )
+        performance_score = signal_engine.calculate_performance_score(
+            performance.get("return_percentage")
         )
 
-        technical_score = (
-            self._calculate_technical_score(
-                indicators["rsi_14"]
-            )
+        technical_score = signal_engine.calculate_technical_score(
+            rsi=indicators.get("rsi_14"),
+            current_price=performance.get("current_price"),
+            sma_20=indicators.get("sma_20"),
+            ema_20=indicators.get("ema_20"),
+            macd=indicators.get("macd"),
+            macd_signal=indicators.get("macd_signal"),
         )
 
-        risk_strength_score = (
-            self._calculate_risk_strength_score(
-                risk["risk_score"]
-            )
+        risk_strength_score = signal_engine.calculate_risk_strength_score(
+            risk.get("risk_score")
         )
 
-        # Calculate overall stock score
-
-        overall_score = (
-            self._calculate_overall_score(
-                performance_score,
-                technical_score,
-                risk_strength_score,
-            )
+        overall_score = signal_engine.calculate_overall_score(
+            performance_score,
+            technical_score,
+            risk_strength_score,
         )
-
-        # Determine stock strength
 
         strength = self._get_stock_strength(
             overall_score
         )
 
         return {
-            "symbol": symbol,
+            "symbol": symbol.upper(),
             "period": period,
             "performance_score": performance_score,
             "technical_score": technical_score,
-            "risk_score": risk["risk_score"],
+            "risk_score": risk.get("risk_score"),
             "overall_score": overall_score,
             "strength": strength,
-        }      
+        }
 
 
     def get_stock_signal(
@@ -453,65 +432,41 @@ class StockService:
         period: str = "3mo",
     ) -> dict:
 
-        symbol = symbol.strip().upper()
-
-        stock = self._get_or_discover_stock(
-            symbol
-        ) 
-        # Get stock score
-
-        stock_score_data = (
-            self.get_stock_score(
-                symbol,
-                period,
-            )
+        score_data = self.get_stock_score(
+            symbol,
+            period,
         )
 
-        stock_score = (
-            stock_score_data["overall_score"]
+        market_data = self.get_market_condition(
+            period
         )
 
-        # Get market condition
-
-        market_data = (
-            self.get_market_condition(
-                period
-            )
+        signal = signal_engine.determine_signal(
+            score_data.get("overall_score"),
+            market_data.get("trend", "NEUTRAL"),
         )
 
-        market_trend = market_data["trend"]
-
-        market_strength = (
-            market_data["market_strength"]
-        )
-
-        # Determine signal
-
-        signal = self._get_stock_signal(
-            stock_score,
-            market_trend,
-        )
-
-        # Calculate confidence
-
-        confidence = (
-            self._calculate_signal_confidence(
-                stock_score,
-                market_strength,
-                market_trend,
-            )
+        confidence = signal_engine.calculate_confidence(
+            score_data.get("overall_score"),
+            market_data.get("market_strength"),
+            market_data.get("trend", "NEUTRAL"),
         )
 
         return {
-            "symbol": symbol,
+            "symbol": symbol.upper(),
             "period": period,
-            "stock_score": stock_score,
-            "market_trend": market_trend,
-            "market_strength": market_strength,
+            "stock_score": score_data.get(
+                "overall_score"
+            ),
+            "market_trend": market_data.get(
+                "trend"
+            ),
+            "market_strength": market_data.get(
+                "market_strength"
+            ),
             "signal": signal,
             "confidence": confidence,
-        }    
-
+        }
 
     def get_market_condition(
         self,
@@ -704,110 +659,6 @@ class StockService:
         )       
 
     
-    def _calculate_performance_score(
-        self,
-        return_percentage,
-    ):
-        """
-        Convert stock return into a
-        0-100 performance score.
-        """
-
-        if return_percentage is None:
-            return None
-
-        if return_percentage >= 10:
-            return 100
-
-        if return_percentage >= 5:
-            return 80
-
-        if return_percentage >= 0:
-            return 60
-
-        if return_percentage >= -5:
-            return 40
-
-        if return_percentage >= -10:
-            return 20
-
-        return 0
-
-
-    def _calculate_technical_score(
-        self,
-        rsi,
-    ):
-        """
-        Convert RSI into a 0-100 technical score.
-        """
-
-        if rsi is None:
-            return None
-
-        if 50 <= rsi < 70:
-            return 80
-
-        if 40 <= rsi < 50:
-            return 70
-
-        if 30 <= rsi < 40:
-            return 60
-
-        if 70 <= rsi < 80:
-            return 50
-
-        if rsi < 30:
-            return 40
-
-        return 30     
-
-
-    def _calculate_risk_strength_score(
-        self,
-        risk_score,
-    ):
-        """
-        Convert risk score into a
-        0-100 risk strength score.
-
-        Lower risk = higher score.
-        """
-
-        if risk_score is None:
-            return None
-
-        return 100 - risk_score
-
-
-    def _calculate_overall_score(
-        self,
-        performance_score,
-        technical_score,
-        risk_strength_score,
-    ):
-        """
-        Calculate the overall stock score.
-
-        Performance: 40%
-        Technical:   30%
-        Risk:        30%
-        """
-
-        if (
-            performance_score is None
-            or technical_score is None
-            or risk_strength_score is None
-        ):
-            return None
-
-        return (
-            performance_score * 0.40
-            + technical_score * 0.30
-            + risk_strength_score * 0.30
-        )
-    
-
     def _get_stock_strength(
         self,
         overall_score,
