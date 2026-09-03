@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+
+import {
+  useLocation,
+} from 'react-router-dom'
 
 import {
   buyStock,
@@ -555,6 +563,9 @@ function TradeHistoryChart() {
    ========================================================= */
 
 function PaperTrading() {
+
+  const location = useLocation()
+
   const [selectedPeriod, setSelectedPeriod] =
     useState('1M')
 
@@ -737,6 +748,20 @@ function PaperTrading() {
     setOrderSuccess('')
   }
 
+  useEffect(() => {
+    const quickTrade =
+      location.state?.quickTrade
+
+    if (!quickTrade) {
+      return
+    }
+
+    openBuyOrder({
+      symbol: quickTrade.symbol,
+      price: quickTrade.price,
+    })
+  }, [location.state])
+    
   /* =======================================================
      OPEN SELL ORDER
      ======================================================= */

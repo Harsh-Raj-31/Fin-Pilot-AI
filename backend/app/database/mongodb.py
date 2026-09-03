@@ -39,3 +39,10 @@ database["paper_trades"].create_index(
         ("created_at", -1),
     ],
 )
+database["watchlists"].create_index(
+    [
+        ("user_id", ASCENDING),
+        ("symbol", ASCENDING),
+    ],
+    unique=True,
+)

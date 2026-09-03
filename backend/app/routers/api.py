@@ -8,6 +8,9 @@ from app.routers.ai import router as ai_router
 from app.routers.paper_trading import (
     router as paper_trading_router,
 )
+from app.routers.watchlist import (
+    router as watchlist_router,
+)
 
 
 api_router = APIRouter()
@@ -19,3 +22,4 @@ api_router.include_router(stocks_router)
 api_router.include_router(portfolio_router)
 api_router.include_router(ai_router)
 api_router.include_router(paper_trading_router)
+api_router.include_router(watchlist_router)

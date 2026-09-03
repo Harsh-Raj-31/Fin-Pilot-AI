@@ -3280,3 +3280,661 @@ body {
   }
 
 }
+/* =========================================================
+   FINPILOT AI
+   WATCHLIST PAGE
+   Page-specific stylesheet
+========================================================= */
+
+.watchlist-page {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 42px 0 28px;
+  color: #eef5fb;
+}
+
+.watchlist-page *,
+.watchlist-page *::before,
+.watchlist-page *::after {
+  box-sizing: border-box;
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.watchlist-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.watchlist-header h2 {
+  margin: 0 0 8px;
+  color: #f4f7fb;
+  font-size: 38px;
+  line-height: 1.12;
+  font-weight: 750;
+  letter-spacing: -0.8px;
+}
+
+.watchlist-header p {
+  margin: 0;
+  color: #7fa6cc;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   ADD STOCK FORM
+========================================================= */
+
+.watchlist-add-form {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  margin-bottom: 20px;
+  padding: 18px;
+
+  border: 1px solid #21445f;
+  border-radius: 12px;
+
+  background: linear-gradient(
+    145deg,
+    #10283d,
+    #0d2133
+  );
+}
+
+.watchlist-add-form input {
+  flex: 1;
+  min-width: 0;
+
+  height: 46px;
+  padding: 0 14px;
+
+  border: 1px solid #29435c;
+  border-radius: 9px;
+
+  outline: none;
+
+  background: #081725;
+  color: #ffffff;
+
+  font-family: inherit;
+  font-size: 14px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.watchlist-add-form input::placeholder {
+  color: #60758a;
+}
+
+.watchlist-add-form input:focus {
+  border-color: #3ddc65;
+
+  box-shadow:
+    0 0 0 3px rgba(61, 220, 101, 0.08);
+}
+
+.watchlist-add-form input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.watchlist-add-form button {
+  min-width: 120px;
+  height: 46px;
+
+  padding: 0 18px;
+
+  border: 0;
+  border-radius: 8px;
+
+  background: #35c85b;
+  color: #06130b;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 750;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.15s ease,
+    opacity 0.2s ease;
+}
+
+.watchlist-add-form button:hover {
+  background: #43db6a;
+  transform: translateY(-1px);
+}
+
+.watchlist-add-form button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+
+/* =========================================================
+   MESSAGES
+========================================================= */
+
+.watchlist-message {
+  margin-bottom: 18px;
+  padding: 12px 14px;
+
+  border-radius: 8px;
+
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.watchlist-error {
+  border: 1px solid rgba(255, 82, 97, 0.25);
+  background: rgba(255, 82, 97, 0.08);
+  color: #ff7777;
+}
+
+.watchlist-success {
+  border: 1px solid rgba(61, 220, 101, 0.25);
+  background: rgba(61, 220, 101, 0.07);
+  color: #4ee86b;
+}
+
+
+/* =========================================================
+   WATCHLIST CARD
+========================================================= */
+
+.watchlist-container {
+  overflow: hidden;
+
+  border: 1px solid #21445f;
+  border-radius: 12px;
+
+  background: linear-gradient(
+    145deg,
+    #10283d,
+    #0d2133
+  );
+
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.12);
+}
+
+.watchlist-table-wrapper {
+  width: 100%;
+
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  scrollbar-width: thin;
+  scrollbar-color: #607080 transparent;
+}
+
+.watchlist-table-wrapper::-webkit-scrollbar {
+  height: 7px;
+}
+
+.watchlist-table-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.watchlist-table-wrapper::-webkit-scrollbar-thumb {
+  background: #607080;
+  border-radius: 10px;
+}
+
+
+/* =========================================================
+   TABLE
+========================================================= */
+
+.watchlist-table {
+  width: 100%;
+  min-width: 900px;
+
+  border-collapse: collapse;
+  border-spacing: 0;
+
+  table-layout: auto;
+}
+
+.watchlist-table th {
+  padding: 14px 18px;
+
+  border-bottom: 1px solid #21435b;
+
+  color: #7898b4;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  text-align: left;
+  text-transform: uppercase;
+
+  letter-spacing: 0.03em;
+
+  white-space: nowrap;
+}
+
+.watchlist-table td {
+  padding: 17px 18px;
+
+  border-bottom:
+    1px solid rgba(50, 86, 112, 0.48);
+
+  color: #a8c2d9;
+
+  font-size: 13px;
+
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.watchlist-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.watchlist-table tbody tr {
+  transition:
+    background 0.2s ease;
+}
+
+.watchlist-table tbody tr:hover {
+  background: rgba(26, 54, 76, 0.25);
+}
+
+.watchlist-table td strong {
+  color: #eaf1f7;
+  font-weight: 750;
+}
+
+
+/* =========================================================
+   STOCK CELL
+========================================================= */
+
+.watchlist-stock {
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
+
+  min-width: 220px;
+}
+
+.watchlist-stock strong {
+  display: block;
+
+  color: #edf4f8;
+
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.watchlist-stock span {
+  display: block;
+
+  max-width: 250px;
+
+  overflow: hidden;
+
+  color: #7698b7;
+
+  font-size: 11px;
+  line-height: 1.3;
+
+  text-overflow: ellipsis;
+}
+
+
+/* =========================================================
+   DAILY CHANGE
+========================================================= */
+
+.watchlist-positive {
+  color: #32ee78 !important;
+  font-weight: 700;
+}
+
+.watchlist-negative {
+  color: #ff5261 !important;
+  font-weight: 700;
+}
+
+
+/* =========================================================
+   SIGNAL BADGES
+========================================================= */
+
+.watchlist-signal {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  min-width: 64px;
+  height: 28px;
+
+  padding: 0 10px;
+
+  border: 1px solid;
+  border-radius: 6px;
+
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+.watchlist-signal-buy {
+  color: #32ee78;
+  border-color: #169b51;
+  background: rgba(23, 179, 88, 0.08);
+}
+
+.watchlist-signal-hold {
+  color: #f4b52f;
+  border-color: #b37a00;
+  background: rgba(220, 160, 20, 0.08);
+}
+
+.watchlist-signal-sell {
+  color: #ff5261;
+  border-color: #a42f48;
+  background: rgba(255, 82, 97, 0.08);
+}
+
+
+/* =========================================================
+   CONFIDENCE
+========================================================= */
+
+.watchlist-confidence {
+  width: 115px;
+  min-width: 115px;
+}
+
+.watchlist-confidence > span {
+  display: block;
+
+  margin-bottom: 6px;
+
+  color: #dbe8f2;
+
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.watchlist-confidence-bar {
+  width: 100%;
+  height: 5px;
+
+  overflow: hidden;
+
+  border-radius: 5px;
+
+  background: #24445b;
+}
+
+.watchlist-confidence-bar div {
+  height: 100%;
+
+  border-radius: inherit;
+
+  background: #2de36e;
+
+  transition:
+    width 0.3s ease;
+}
+
+
+/* =========================================================
+   ACTION BUTTONS
+========================================================= */
+
+.watchlist-actions {
+  display: flex;
+  align-items: center;
+
+  gap: 7px;
+}
+
+.watchlist-actions button {
+  height: 34px;
+
+  padding: 0 10px;
+
+  border-radius: 6px;
+
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.15s ease;
+}
+
+
+/* VIEW */
+
+.watchlist-view-button {
+  border: 1px solid #28506f;
+
+  background: transparent;
+
+  color: #8db6d5;
+}
+
+.watchlist-view-button:hover {
+  border-color: #41a9ff;
+  color: #51adff;
+
+  transform: translateY(-1px);
+}
+
+
+/* TRADE */
+
+.watchlist-trade-button {
+  border: 1px solid #169b51;
+
+  background: rgba(23, 179, 88, 0.08);
+
+  color: #32ee78;
+}
+
+.watchlist-trade-button:hover {
+  background: rgba(23, 179, 88, 0.16);
+
+  transform: translateY(-1px);
+}
+
+.watchlist-trade-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+
+/* REMOVE */
+
+.watchlist-remove-button {
+  border: 1px solid #7f3044;
+
+  background: transparent;
+
+  color: #ff6876;
+}
+
+.watchlist-remove-button:hover {
+  border-color: #a42f48;
+  background: rgba(255, 82, 97, 0.08);
+
+  transform: translateY(-1px);
+}
+
+.watchlist-remove-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+
+/* =========================================================
+   LOADING STATE
+========================================================= */
+
+.watchlist-loading {
+  min-height: 260px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid #21445f;
+  border-radius: 12px;
+
+  background: #0d1e30;
+}
+
+.watchlist-loading p {
+  margin: 0;
+
+  color: #7898b4;
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+.watchlist-empty {
+  min-height: 280px;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 35px 20px;
+
+  border: 1px solid #21445f;
+  border-radius: 12px;
+
+  background: #0d1e30;
+
+  text-align: center;
+}
+
+.watchlist-empty h3 {
+  margin: 0 0 8px;
+
+  color: #edf4f8;
+
+  font-size: 18px;
+}
+
+.watchlist-empty p {
+  margin: 0;
+
+  color: #7189a1;
+
+  font-size: 13px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 850px) {
+
+  .watchlist-page {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .watchlist-header {
+    flex-direction: column;
+  }
+
+  .watchlist-add-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .watchlist-add-form button {
+    width: 100%;
+  }
+
+}
+
+
+@media (max-width: 650px) {
+
+  .watchlist-page {
+    padding: 28px 14px 24px;
+  }
+
+  .watchlist-header h2 {
+    font-size: 32px;
+  }
+
+  .watchlist-header p {
+    font-size: 15px;
+  }
+
+  .watchlist-container {
+    border-radius: 10px;
+  }
+
+  .watchlist-table {
+    min-width: 900px;
+  }
+
+  .watchlist-table th,
+  .watchlist-table td {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+}
+
+
+@media (max-width: 420px) {
+
+  .watchlist-page {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .watchlist-header h2 {
+    font-size: 28px;
+  }
+
+  .watchlist-add-form {
+    padding: 14px;
+  }
+
+}

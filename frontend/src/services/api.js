@@ -347,3 +347,74 @@ export async function sellStock(
 
   return response.json();
 }
+export async function getWatchlist(token) {
+  const response = await fetch(
+    `${API_BASE_URL}/watchlist`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  )
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(
+      data.detail || "Failed to fetch watchlist."
+    )
+  }
+
+  return data
+}
+
+
+export async function addToWatchlist(symbol, token) {
+  const response = await fetch(
+    `${API_BASE_URL}/watchlist`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        symbol: symbol,
+      }),
+    }
+  )
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(
+      data.detail || "Failed to add stock to watchlist."
+    )
+  }
+
+  return data
+}
+
+
+export async function removeFromWatchlist(symbol, token) {
+  const response = await fetch(
+    `${API_BASE_URL}/watchlist/${encodeURIComponent(symbol)}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  )
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(
+      data.detail || "Failed to remove stock from watchlist."
+    )
+  }
+
+  return data
+}
