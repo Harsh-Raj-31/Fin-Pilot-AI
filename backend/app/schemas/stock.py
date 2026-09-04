@@ -151,3 +151,4 @@ class StockUpdate(BaseModel):
         description="Business sector",
         example="Information Technology",
     )    
+

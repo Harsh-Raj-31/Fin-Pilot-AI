@@ -432,19 +432,62 @@ class StockService:
         period: str = "3mo",
     ) -> dict:
 
+        # ---------------------------------------------------------
+        # GET STOCK SCORE
+        # ---------------------------------------------------------
+
         score_data = self.get_stock_score(
             symbol,
             period,
         )
 
+        # ---------------------------------------------------------
+        # GET MARKET CONDITION
+        # ---------------------------------------------------------
+
         market_data = self.get_market_condition(
             period
         )
+
+        # ---------------------------------------------------------
+        # GET TECHNICAL INDICATORS
+        # ---------------------------------------------------------
+
+        indicators = self.market_data_service.get_stock_indicators(
+            symbol,
+            period,
+        )
+
+        # ---------------------------------------------------------
+        # GET PERFORMANCE DATA
+        # ---------------------------------------------------------
+
+        performance = self.market_data_service.get_stock_performance(
+            symbol,
+            period,
+        )
+
+        # ---------------------------------------------------------
+        # GET RISK DATA
+        # ---------------------------------------------------------
+
+        risk = self.market_data_service.get_stock_risk(
+            symbol,
+            period,
+        )
+
+        # ---------------------------------------------------------
+        # DETERMINE SIGNAL
+        # ---------------------------------------------------------
 
         signal = signal_engine.determine_signal(
             score_data.get("overall_score"),
             market_data.get("trend", "NEUTRAL"),
         )
+
+        # ---------------------------------------------------------
+        # CALCULATE CONFIDENCE
+        # ---------------------------------------------------------
 
         confidence = signal_engine.calculate_confidence(
             score_data.get("overall_score"),
@@ -452,21 +495,93 @@ class StockService:
             market_data.get("trend", "NEUTRAL"),
         )
 
+        # ---------------------------------------------------------
+        # TECHNICAL REASONING
+        # ---------------------------------------------------------
+
+        technical_reasoning = (
+            signal_engine.generate_technical_reasoning(
+                rsi=indicators.get("rsi_14"),
+                current_price=performance.get("current_price"),
+                sma_20=indicators.get("sma_20"),
+                ema_20=indicators.get("ema_20"),
+                macd=indicators.get("macd"),
+                macd_signal=indicators.get("macd_signal"),
+            )
+        )
+
+        # ---------------------------------------------------------
+        # RISK REASONING
+        # ---------------------------------------------------------
+
+        risk_reasoning = (
+            signal_engine.generate_risk_reasoning(
+                risk.get("risk_score")
+            )
+        )
+
+        # ---------------------------------------------------------
+        # MARKET REASONING
+        # ---------------------------------------------------------
+
+        market_reasoning = (
+            signal_engine.generate_market_reasoning(
+                market_data.get("trend"),
+                market_data.get("market_strength"),
+            )
+        )
+
+        # ---------------------------------------------------------
+        # OVERALL EXPLANATION
+        # ---------------------------------------------------------
+
+        explanation = (
+            signal_engine.generate_overall_explanation(
+                symbol=symbol,
+                signal=signal,
+                overall_score=score_data.get(
+                    "overall_score"
+                ),
+                confidence=confidence,
+                technical_reasons=technical_reasoning,
+                risk_reasons=risk_reasoning,
+                market_reasons=market_reasoning,
+            )
+        )
+
+        # ---------------------------------------------------------
+        # FINAL RESPONSE
+        # ---------------------------------------------------------
+
         return {
             "symbol": symbol.upper(),
             "period": period,
+
             "stock_score": score_data.get(
                 "overall_score"
             ),
+
             "market_trend": market_data.get(
                 "trend"
             ),
+
             "market_strength": market_data.get(
                 "market_strength"
             ),
+
             "signal": signal,
+
             "confidence": confidence,
+
+            "technical_reasoning": technical_reasoning,
+
+            "risk_reasoning": risk_reasoning,
+
+            "market_reasoning": market_reasoning,
+
+            "explanation": explanation,
         }
+   
 
     def get_market_condition(
         self,
